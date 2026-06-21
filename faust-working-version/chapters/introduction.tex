@@ -1,0 +1,42 @@
+\chapter{Einleitung}
+\label{cha:einleitung}
+\section{Motivation und Problemstellung}
+Die digitale Signalverarbeitung (Digital Signal Processing, DSP) ist ein wichtiges Anwendungsfeld in der Informatik besonderen Wert in Telekommunikation, Audiotechnik, Sprachverarbeitung und Medizintechnik, die mit hohen Anforderungen an Laufzeiteffizienz, deterministische Latenz und numerische Präzision. Grundsätzlich sind die Implementierungen der DSP-Algorithmen in C oder C++, welches aufgrund deren direkten Zugriff auf Hardware Ressourcen und deren extrem effizienten Übersetzer (GCC, Clang) hochgradig optimierte Maschinencode erzeugt, für die Bachelorarbeit die erste Wahl. Der Knackpunkt trotz all den Vorteilen liegt an der doch noch sehr zeitintensive, fehleranfällige mathematische Übersetzung bis hin zu manuelle Implementierung von DSP-Algorithmen und das exportieren auf verschiedenen Zielplattformen, wie auf Desktop, verschiedensten Embedded Systemen, Web und Plug-in-Hosts; Daraus kristallisierten sich in den letzten zwei Jahrzehnten domänspezifische Sprachen(Domain-Specific Languages, DSLs) für die Audio-Signalverarbeitung, welches durch Abstraktion und Code-Generierung die Probleme bewältigen soll.
+
+Die domänenspezifische Sprache Faust (Functional AUdio STream), entwickelt am GRAME in Lyon von, verspricht einen Lösungsansatz zu den erwähnten Herausforderungen. Faust ist eine funktionale, blockbasierte Programmiersprache, die speziell für Audio-DSP entworfen wurde. Programme werden als algebraische Komposition von Signalverarbeitungs-operatoren formuliert. Der Faust-Compiler übersetzt die mathematisch knappe Beschreibung eines Signalflussdiagramms in mehrere Zielsprache, darunter C++, Rust, JavaScript und WebAssembly. Aus einer einzigen Quellbeschreibung lassen sich somit Plug-ins für Digital Audio Workstations, Embedded-Anwendungen auf Mikrocontrollern und Webapplikationen erzeugen. \parencite{orlarey:hal-02159014}
+
+
+Um für die industrielle Tauglichkeit muss der durch Faust generierte Code sowohl funktional korrekt, als auch laufzeiteffizient sein. Befürworter von Faust argumentieren, dass der generierte Code durch globaler Optimierung über den vollständigen Signalflussgraphen, automatischer Vektorisierung \parencite{scaringella:hal-02158949} und Parallelisierung \parencite{letz:hal-02158924} mit handgeschriebener C++ Code ebenbürtig oder dieses sogar übertreffen kann. Diese Behauptung vertreten auch die Entwickler in der offiziellen Faust-Dokumentation. \parencite{orlarey:hal-02159014} Ob handgeschriebener, manuell optimierter C++-Code grundsätzlich performanter ist als Faust-generierter Code, ist in der wissenschaftlichen Literatur bislang nur punktuell untersucht. Eine systematische Literaturrecherche zeigt zwei peer-reviewte Studien mit direktem Performanz-Vergleich zwischen Faust-generiertem und handgeschriebenem C++-Code. 
+
+\cite{orlarey:hal-02159014freewerb} berichten für den Reverb-Algorithmus \emph{Freeverb} einen Geschwindigkeitsvorteil zugunsten von Faust
+von 28~Prozent und für den Multi-Tap-Delay \emph{Tapiir} von 49~Prozent. \cite{michon2011fauststk} erweitern diesen Vergleich auf neun Instrumente des \emph{Synthesis Toolkit} (STK) und ermitteln dort Geschwindigkeitsvorteile zwischen 18 und 80~Prozent. Beide Studien stammen aus dem erweiterten Faust-Umfeld und untersuchen ausschließlich Algorithmen im Zeitbereich (Reverbs, Delays, physikalische Modelle).
+
+Für FFT-intensive DSP-Algorithmen liegt keine vergleichende Untersuchung vor. Diese Lücke ist nicht zufällig: Die Faust-Dokumentation räumt selbst ein, dass die Sprache durch ihr sample-orientiertes Berechnungsmodell strukturelle Schwierigkeiten mit Multi-Rate-Algorithmen wie FFT und Faltung aufweist \cite{orlarey:hal-02159014}. Da gerade FFT-basierte Verarbeitung den Kern vieler praxisrelevanter DSP-Anwendungen --etwa Sprachverbesserung, Audio-Codecs und akustische Analyse --bildet, ergibt sich hier eine wissenschaftlich wie praktisch relevante Forschungslücke.
+
+Die vorliegende Arbeit setzt an dieser doppelten Lücke an: Sie untersucht systematisch und mit differenzierter Methodik, wie sich Faust-generierter C++-Code gegenüber einer manuell implementierten C++-Lösung verhält, wenn beide Implementierungen einen FFT-basierten Algorithmus realisieren. Als Anwendungsfall wird ein klassisches, in der Literatur umfassend dokumentiertes Verfahren der Einkanal-Rauschunterdrückung herangezogen -- \emph{Spectral Subtraction} nach Boll. \cite{boll1979} Die Wahl eines etablierten, wohlverstandenen Algorithmus erlaubt es, den Fokus konsequent auf den Sprach- und Implementierungsvergleich zu legen.
+
+\section{Forschungsfrage und Zielsetzung}
+Ziel dieser Arbeit ist es an dieser doppelten Lücke anzusetzen. Sie soll die Untersuchung der Eignung von Faust für die Implementierung von FFT-intensiven Echtzeit-DSP-Anwendungen im direkten Vergleich zu einer äquivalenten manuellen nicht optimierten C++-Implementierung zeigen. Dabei soll die Handhabung und Erlernbarkeit der Sprache Faust bei der Implementierung berücksichtigt werden. 
+
+Zur Beantwortung der Hauptaufgabe werden folgende Teilfragen untersucht:
+\begin{itemize}
+	\item Wie groß ist der Performanz-Unterschied(CPU-Zeit pro Audio-Block) zwischen Faust-generiertem und handgeschriebenem Code für elementare DSP-Bausteine(Gain, Biquad-Filter, FIR, FFT)?
+	\item Wie skaliert dieser Unterschied bei der Verknüpfung zu einer vollständigen Pipeline(Framing, Fensterung, FFT, Spectral Subtraction)?
+	\item Bestehen Objektive Qualitätsunterschiede(PESQ, STOI, SNR-Verbesserung) zwischen den beiden Implementierungen bei identischem Algorithmus?
+	\item Developer Experience: Wie bewährt sich Faust hinsichtlich Entwicklerfreundlichkeit, Codelänge, Wartbarkeit, Komplexität im Vergleich zum Aufbau komplexer Datenstrukturen in C++?
+\end{itemize}
+
+\section{Aufbau der Arbeit}
+Die vorliegende Bachelorarbeit ist methodisch in acht Kapitel strukturiert. Der Prozess umfasst, theoretische Grundlagen der DSP, Aufbau des Prototyps, die Durchführung systematischer Vergleiche sowie die abschließende Evaluierung.
+
+Nach dieser Einleitung wird im Kapitel 2 (die Grundlagen) für das notwendige Verständnis der Digitale Signalverarbeitung erläutert, genaueres über Audio-DSP, Fast Fourier Transformation, Fensterfunktionen und sowie generell Echtzeitanforderungen. 
+
+Darauf aufbauend stellt Kapitel 3 (Faust) die domänenspezifische Sprache im Detail vor. Einblicke in die funktionale Syntax und Semantik sowie die zugrundeliegende Compiler-Architektur. In Kapitel 4 (Spectral Subtraction) wird die ausgewählte Algorithmus, ein Rauschunterdrückungsverfahren nach Boll theoretisch hergeleitet und auf deren Parametern genauer eingegangen.
+
+In Kapitel 5 (Implementierung) wird die praktische Umsetzung beider Varianten beschrieben. Faust-Code, C++-Code, gemeinsame Schnittstellendesign und sowie Build-System für eine faire Vergleichsbasis werden dokumentiert. 
+
+Die Beantwortung der Forschungsfragen erfolgt in Kapitel 6 (Evaluation). In diesem Kapitel werden die Versuchsaufbau detailliert dargelegt und die Ergebnisse der Mikro- und Makro-Benchmarks (Laufzeit, Speicher, Binärgröße) sowie der Qualitätsmessungen (PESQ, STOI) auf beiden Testplattformen ausgewertet. 
+
+Danach wird in Kapitel 7 (Diskussion) die erhobene Daten interpretiert. Es werden Limitationen der Untersuchungen, die Aussagekräftigkeit der Durchführungen und die qualitativen Aspekte der Entwicklererfahrung beider Sprachen gegenübergestellt. 
+
+Zum Abschluss mit Kapitel 8 (Fazit und Ausblick) wird die Arbeit zusammengefasst und ein Ausblick auf mögliche Erweiterungen, oder Lücken hingewiesen. 

@@ -1,0 +1,64 @@
+\babel@toc {ngerman}{}\relax 
+\babel@toc {ngerman}{}\relax 
+\babel@toc {ngerman}{}\relax 
+\babel@toc {ngerman}{}\relax 
+\contentsline {chapter}{Erkl\"arung}{iv}{chapter*.1}%
+\babel@toc {ngerman}{}\relax 
+\contentsline {chapter}{Preface}{vii}{chapter*.3}%
+\contentsline {chapter}{Abstract}{viii}{chapter*.4}%
+\contentsline {chapter}{Kurzfassung}{ix}{chapter*.5}%
+\babel@toc {ngerman}{}\relax 
+\babel@toc {ngerman}{}\relax 
+\contentsline {chapter}{\numberline {1}Einleitung}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Motivation und Problemstellung}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Forschungsfrage und Zielsetzung}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Aufbau der Arbeit}{3}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Grundlagen}{4}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Grundlagen der Audio-DSP}{4}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Physikalische Grundlage des Audiosignals}{4}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Signal-Rausch-Verhältnis (SNR)}{5}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Abtastung und Quantisierung}{5}{subsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.1.4}Digitale Audiosignale als Sample-Folgen}{5}{subsection.2.1.4}%
+\contentsline {section}{\numberline {2.2}Frequenzanalyse mit DFT und FFT}{5}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Zeitbereich und Frequenzbereich}{5}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Diskrete Fourier-Transformation}{5}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Fast Fourier Transformation}{5}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}Amplituden- und Leistungsspektrum}{5}{subsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.2.5}Frequenzauflösung}{5}{subsection.2.2.5}%
+\contentsline {section}{\numberline {2.3}Kurzzeitanalyse und STFT}{5}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Nichtstationarität von Sprache}{5}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Frame-basierte Verarbeitung}{5}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Short-Time Fourier Transform}{5}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Magnitude und Phase}{5}{subsection.2.3.4}%
+\contentsline {section}{\numberline {2.4}Fensterfunktionen}{5}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Blockbildung und Randdiskontinuitäten}{5}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Spectral Leakage}{5}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Hanning- und Hamming-Fenster}{5}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}Bedeutung für spektrale Subtraktion}{5}{subsection.2.4.4}%
+\contentsline {section}{\numberline {2.5}Overlap-Add und Rekonstruktion}{5}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Inverse FFT}{5}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Überlappende Frames}{5}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Rekonstruktion des Zeitsignals}{5}{subsection.2.5.3}%
+\contentsline {section}{\numberline {2.6}Echtzeitanforderungen}{5}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Latenz}{5}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Puffergröße}{5}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Rechenzeit pro Frame}{5}{subsection.2.6.3}%
+\contentsline {subsection}{\numberline {2.6.4}Overrun und Underrun}{5}{subsection.2.6.4}%
+\contentsline {subsection}{\numberline {2.6.5}Echtzeitfähigkeit der spektralen Subtraktion}{5}{subsection.2.6.5}%
+\contentsline {section}{\numberline {2.7}Zusammenfassung}{5}{section.2.7}%
+\contentsline {chapter}{\numberline {3}Working with La\-TeX\xspace }{6}{chapter.3}%
+\contentsline {chapter}{\numberline {4}Figures, Tables, Source Code}{7}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Mathematical Elements}{8}{chapter.5}%
+\contentsline {chapter}{\numberline {6}Using Literature}{9}{chapter.6}%
+\contentsline {chapter}{\numberline {7}Printing the Manuscript}{10}{chapter.7}%
+\contentsline {chapter}{\numberline {8}Closing Remarks}{11}{chapter.8}%
+\contentsline {chapter}{\numberline {A}Technical Details}{12}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Supplementary Materials}{13}{appendix.B}%
+\contentsline {section}{\numberline {B.1}PDF Files}{13}{section.B.1}%
+\contentsline {paragraph}{Pfad: \nolinkurl {/}}{13}{section.B.1}%
+\contentsline {section}{\numberline {B.2}Media Files}{13}{section.B.2}%
+\contentsline {paragraph}{Pfad: \nolinkurl {/media}}{13}{section.B.2}%
+\contentsline {chapter}{\numberline {C}Questionnaire}{14}{appendix.C}%
+\contentsline {chapter}{\numberline {D}La\-TeX\xspace Source Code}{15}{appendix.D}%
+\contentsline {chapter}{Quellenverzeichnis}{16}{chapter*.19}%
+\contentsline {section}{Literatur}{16}{section*.20}%
