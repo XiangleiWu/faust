@@ -1,0 +1,120 @@
+# ══════════════════════════════════════════════
+# .gitignore für LaTeX-Projekte
+# ══════════════════════════════════════════════
+
+# ── Hilfsdateien (automatisch generiert) ──────
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+
+# ── Bibliographie ──────────────────────────────
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+
+# ── Indizes ────────────────────────────────────
+*.idx
+*.ilg
+*.ind
+*.ist
+
+# ── Glossar ────────────────────────────────────
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.lzo
+*.lzs
+*.slg
+*.slo
+*.sls
+
+# ── Referenzen / Querverweise ──────────────────
+*.synctex
+*.synctex(busy)
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
+
+# ── Pakete & Kompilierung ──────────────────────
+*.dvi
+*.xdv
+*.fdb_latexmk
+*.makeindex
+
+# ── Zwischendateien ────────────────────────────
+*.nav
+*.pre
+*.snm
+*.vrb
+
+# ── Minted (Code-Highlighting) ─────────────────
+_minted*/
+*.pyg
+
+# ── pgfplots ───────────────────────────────────
+*.dpth
+
+# ── todonotes ──────────────────────────────────
+*.tdo
+
+# ── pax ────────────────────────────────────────
+*.pax
+
+# ── Beamer ─────────────────────────────────────
+*.nav
+*.snm
+*.vrb
+
+# ── Finale PDF nicht tracken ───────────────────
+# (auskommentieren falls PDF im Repo gewünscht)
+*.pdf
+
+# ── Editoren ───────────────────────────────────
+
+# VS Code
+.vscode/
+
+# Overleaf (lokale Sync-Dateien)
+.overleaf/
+
+# TeXstudio
+*.txss
+*.txss2
+
+# TeXnicCenter
+*.tps
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.directory
