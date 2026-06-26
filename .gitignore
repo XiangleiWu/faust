@@ -83,7 +83,6 @@ _minted*/
 
 # ── Finale PDF nicht tracken ───────────────────
 # (auskommentieren falls PDF im Repo gewünscht)
-*.pdf
 
 # ── Editoren ───────────────────────────────────
 

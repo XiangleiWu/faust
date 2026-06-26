@@ -1,0 +1,112 @@
+\chapter{Grundlagen}
+
+\section{Grundlagen der Audio-DSP}
+
+\subsection{Physikalische Grundlage des Audiosignals}
+
+In der Audiosignalverarbeitung wird die Erfassung, Speicherung, Anzeige und Erzeugung von Audiosignale gesprochen. Ebenso als Extraktion und Neu-Codierung von Informationen.
+In der Regel entsteht durch mechanische Schwingungen in der Luft ein Schall mit einer Schallgeschwindigkeit $c \approx 343 \, \text{m/s}$ im Raum ausbreitet. Um den Schalldruck als Signal zu erfassen ist die einfachste Darstellung die Sinuswelle. \cite{rossing2007springer}
+
+\begin{equation}
+	x(t) = A \cdot \sin(\omega t + \phi)
+\end{equation}
+
+Die wichtigsten Größen im Zeitbereich sind:
+
+\begin{itemize}
+	\item \textbf{Amplitude} $A$: die Größe der Schwingung, also die maximale Druckabweichung vom Ruhezustand.
+	\item \textbf{Frequenz} $f$: die Anzahl der Schwingungswiederholungen pro Sekunde, gemessen in Hertz~(Hz).
+	\item \textbf{Periode} $T$: die Dauer einer vollständigen Schwingung, mit
+	\begin{equation}
+		T = \frac{1}{f}
+	\end{equation}
+	\item \textbf{Phase} $\phi$: die Anfangslage der Schwingung im Zyklus, angegeben in Radiant.
+\end{itemize}
+
+\subsection{Abtastung und Quantisierung}
+Das Mikrofon wandelt den Schalldruck $p(t)$ in eine analoge elektrische Spannung $u(t)$ um - ein kontinuierliches Signal, das anschließend durch den ADC abgetastet und quantisiert wird. Damit ist die Verbindung zur digitalen Signalverarbeitung hergestellt. Dabei ist Aliasing ein zentrales Problem,   \cite{rossing2007springer}.
+
+
+\subsection{Digitale Audiosignale als Sample-Folgen}
+
+\subsection{Signal-Rausch-Verhältnis (SNR)}
+Wichtig für den späteren Verständnis ist das Signal-Rausch-Verhältnis. SNR beschreibt das Verhältnis der Nutzleistung eines Signals zur Leistung des überlagerten Rauschens. Je höher das SNR, desto weniger wird das Nutzsignal durch Rauschen beeinträchtigt.
+
+Das SNR ist definiert als:
+
+\begin{equation}
+	\text{SNR} = \frac{P_{\text{Signal}}}{P_{\text{Rauschen}}}
+\end{equation}
+
+Da Leistungsverhältnisse sehr große oder sehr kleine Zahlen annehmen können, 
+wird das SNR in der Praxis logarithmisch in Dezibel (dB) angegeben:
+
+\begin{equation}
+	\text{SNR}_{\text{dB}} = 10 \cdot \log_{10} 
+	\left( \frac{P_{\text{Signal}}}{P_{\text{Rauschen}}} \right)
+\end{equation}
+
+Sind statt Leistungen die Amplituden bekannt, gilt:
+
+\begin{equation}
+	\text{SNR}_{\text{dB}} = 20 \cdot \log_{10} 
+	\left( \frac{A_{\text{Signal}}}{A_{\text{Rauschen}}} \right)
+\end{equation}
+
+Typische Orientierungswerte für die Sprachverarbeitung:
+
+\begin{itemize}
+	\item $\text{SNR} < 0\,\text{dB}$: Rauschen lauter als Nutzsignal
+	\item $\text{SNR} \approx 10\,\text{dB}$: Sprache gerade noch verständlich
+	\item $\text{SNR} \approx 20\,\text{dB}$: gute Sprachqualität
+	\item $\text{SNR} > 40\,\text{dB}$: Studioqualität
+\end{itemize}
+
+Für die spektrale Subtraktion ist das SNR die zentrale Bewertungsgröße: 
+Ziel des Algorithmus ist es, das SNR des verrauschten Eingangssignals 
+$y[n] = x[n] + d[n]$ durch Unterdrückung des Rauschspektrums $D[k]$ 
+zu maximieren, ohne dabei das Nutzsignal $x[n]$ wesentlich zu verzerren. \cite{Loizou2013}
+
+\section{Frequenzanalyse mit DFT und FFT}
+
+\subsection{Zeitbereich und Frequenzbereich}
+
+\subsection{Diskrete Fourier-Transformation}
+
+\subsection{Fast Fourier Transformation}
+
+\subsection{Amplituden- und Leistungsspektrum}
+
+\subsection{Frequenzauflösung}
+
+\section{Kurzzeitanalyse und STFT}
+
+\subsection{Nichtstationarität von Sprache}
+
+\subsection{Frame-basierte Verarbeitung}
+
+\subsection{Short-Time Fourier Transform}
+
+\subsection{Magnitude und Phase}
+
+\section{Fensterfunktionen}
+
+\subsection{Blockbildung und Randdiskontinuitäten}
+
+\subsection{Spectral Leakage}
+
+\subsection{Hanning- und Hamming-Fenster}
+
+\subsection{Bedeutung für spektrale Subtraktion}
+
+\section{Overlap-Add und Rekonstruktion}
+\subsection{Inverse FFT}
+\subsection{Überlappende Frames}
+\subsection{Rekonstruktion des Zeitsignals}
+\section{Echtzeitanforderungen}
+\subsection{Latenz}
+\subsection{Puffergröße}
+\subsection{Rechenzeit pro Frame}
+\subsection{Overrun und Underrun}
+\subsection{Echtzeitfähigkeit der spektralen Subtraktion}
+\section{Zusammenfassung}

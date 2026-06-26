@@ -4,13 +4,15 @@
 
 \subsection{Physikalische Grundlage des Audiosignals}
 
-In der Signalverarbeitung wird die Erfassung, Speicherung, Anzeige und Erzeugung von Signale von Audiosignale gesprochen. Ebenso als Extraktion und Neu-Codierung von Informationen.
-In der Regel kommt die Quelle für die Signalverarbeitung durch mechanische Schwingungen in der Luft ein Schall mit einer Schallgeschwindigkeit $c \approx 343 \, \text{m/s}$ 
-im Raum ausbreitet. Um dies zu erfassen ist die einfachste Darstellung eines Signals die Sinuswelle. \cite{rossing2007springer}
+Das Audiosignal ist physikalisch eine sich in einem Medium ausbreitende Druck- und Bewegungsstörung, die durch ihre zeitlichen und räumlichen Schwingungsgrößen beschrieben wird \cite[Vgl.][S.~45]{rossing2007springer}.
 
+Die einfachste Darstellung eines Signals im Zeitbereich ist die Sinuswelle,  
 \begin{equation}
 	x(t) = A \cdot \sin(\omega t + \phi)
 \end{equation}
+also eine zeitliche Schwankung des Drucks um einen Mittelwert \cite{rossing2007springerP45}. 
+
+
 
 Die wichtigsten Größen im Zeitbereich sind:
 
@@ -24,9 +26,23 @@ Die wichtigsten Größen im Zeitbereich sind:
 	\item \textbf{Phase} $\phi$: die Anfangslage der Schwingung im Zyklus, angegeben in Radiant.
 \end{itemize}
 
+
+\subsection{Abtastung und Quantisierung}
+Abtastung auch als Sampling bezeichnet dient dazu aufgrund dessen, dass das analoge Signale zu jedem Zeitpunkt existiert, wird zu bestimmten, gleichmäßigen Zeitpunkten das Signal abgetastet, gemessen. Alles dazwischen wird ignoriert. Die Anzahl der Messungen pro Sekunde ist die Abtastfrequenz $f_s$ gemessen in Hz.
+
+Bei der Abtastung ist die wichtigste Regel das $Nyquist-Theorem$. Sie besagt dass mindestens doppelt so schnell abtasten wie die höchste Frequenz im Signal, sonst kommt es zu Fehlern. 
+\begin{equation}
+	f_s \geq 2 \cdot f_{\max}
+\end{equation} \cite{rossing2007springerP521-522}. 
+
+Quantisierung ist der Schritt nach der Abtastung. Die unendlich genaue Messwerte werden auf einen diskreten Zahlenwert gerundet. Sie wird durch die Bittiefe begrenzt. Durch das Runden wird ein Quantisierungsfehler erzeugt, wobei ein leises Rauschen aus dem Differenz wahrgenommen wird. Je mehr Bits umso besser die Audioqualität \cite{rossing2007springer}. 
+
+\begin{equation}
+	x[n] = x(n \cdot T_s), \quad T_s = \frac{1}{f_s}
+\end{equation}
+
 \subsection{Signal-Rausch-Verhältnis (SNR)}
-SNR beschreibt beschreibt 
-das Verhältnis der Nutzleistung eines Signals zur Leistung des überlagerten 
+SNR beschreibt das Verhältnis der Nutzleistung eines Signals zur Leistung des überlagerten 
 Rauschens. Je höher das SNR, desto weniger wird das Nutzsignal durch Rauschen 
 beeinträchtigt.
 
@@ -65,10 +81,29 @@ Ziel des Algorithmus ist es, das SNR des verrauschten Eingangssignals
 $y[n] = x[n] + d[n]$ durch Unterdrückung des Rauschspektrums $D[k]$ 
 zu maximieren, ohne dabei das Nutzsignal $x[n]$ wesentlich zu verzerren. \cite{Loizou2013}
 
-\subsection{Abtastung und Quantisierung}
-Das Mikrofon wandelt den Schalldruck $p(t)$ in eine analoge elektrische Spannung $u(t)$ um - ein kontinuierliches Signal, das anschließend durch den ADC abgetastet und quantisiert wird. Damit ist die Verbindung zur digitalen Signalverarbeitung hergestellt. \cite{rossing2007springer} 
 
 \subsection{Digitale Audiosignale als Sample-Folgen}
+
+Nach Abtastung und Quantisierung liegt das Audiosignal als diskrete 
+Sample-Folge vor \cite{rossing2007springer}:
+
+\begin{equation}
+	x[n] = x(n \cdot T_s), \quad n = 0, 1, \ldots, N-1
+\end{equation}
+
+Für die Verarbeitung wird die Folge in überlappende Frames der Länge 
+$N$ unterteilt um den Verlust von Signalen zu vermeiden:
+
+\begin{equation}
+	x_\lambda[n] = x[n + \lambda \cdot H]
+\end{equation}
+
+\noindent wobei $\lambda$ den Frame-Index und $H$ die Hop Size bezeichnen. 
+Diese blockbasierte Struktur ist die direkte Grundlage der 
+Kurzzeit-Fouriertransformation in Abschnitt~\ref{sec:stft} 
+\cite{Loizou2013}.
+
+
 
 \section{Frequenzanalyse mit DFT und FFT}
 
@@ -89,6 +124,7 @@ Das Mikrofon wandelt den Schalldruck $p(t)$ in eine analoge elektrische Spannung
 \subsection{Frame-basierte Verarbeitung}
 
 \subsection{Short-Time Fourier Transform}
+\label{sec:stft}
 
 \subsection{Magnitude und Phase}
 
@@ -102,6 +138,8 @@ Das Mikrofon wandelt den Schalldruck $p(t)$ in eine analoge elektrische Spannung
 
 \subsection{Bedeutung für spektrale Subtraktion}
 
+
+             
 \section{Overlap-Add und Rekonstruktion}
 \subsection{Inverse FFT}
 \subsection{Überlappende Frames}
