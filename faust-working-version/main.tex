@@ -14,11 +14,12 @@
 \graphicspath{{images/}}  % Location of images and graphics
 \logofile{logo}           % Logo file: images/logo.pdf (no logo: \logofile{})
 \bibliography{references} % Biblatex bibliography file (references.bib)
-
+\usepackage{tikz}
 %%%-----------------------------------------------------------------------------
 \begin{document}
 %%%-----------------------------------------------------------------------------
 
+\usetikzlibrary{positioning, arrows.meta}
 %%%-----------------------------------------------------------------------------
 % Title page entries
 %%%-----------------------------------------------------------------------------
@@ -54,8 +55,7 @@
 
 \include{chapters/introduction}
 \include{chapters/grundlagen}
-\include{chapters/latex}
-\include{chapters/figures}
+\include{chapters/faust}
 \include{chapters/mathematics}
 \include{chapters/literature}
 \include{chapters/printing}
