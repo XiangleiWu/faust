@@ -66,9 +66,12 @@ Damit die Verarbeitung echtzeitfähig bleibt, muss die Berechnung eines Blocks v
 \subsection{Gain-Stufe}
 
 Eine Gain-Stufe skaliert jedes Eingangssample mit einem konstanten Verstärkungsfaktor $g$. Für ein Eingangssignal $x[n]$ ergibt sich das Ausgangssignal $y[n]$ zu
+
+
 \begin{equation}
 	y[n] = g \cdot x[n].
 \end{equation}
+
 
 \noindent Smith behandelt diese Skalierung als elementare lineare Operation der digitalen Audioverarbeitung \parencite{smith2007digitalfilters}.
 
@@ -83,7 +86,23 @@ Der Baustein benötigt pro Sample lediglich eine Multiplikation und dient deshal
 
 \noindent Smith leitet diese Umrechnung aus der Definition eines Amplitudenverhältnisses in Dezibel ab \parencite{smith2007digitalfilters}.
 
-Die Gain-Stufe bildet damit einen bewusst einfachen, vollständig datenparallelen Benchmark-Kern. Scaringella et al. beschreiben Vektorisierung als Ausführung derselben Operation auf mehreren Datenwerten durch SIMD-Instruktionen; eine sampleweise Skalierung besitzt daher grundsätzlich ein hohes Vektorisierungspotenzial \parencite{scaringella:hal-02158949}. 
+
+
+Die folgende Abbildung veranschaulicht eine Gain-Stufe mit $g=0.5$. Das Ausgangssignal besitzt für jedes Sample die halbe Amplitude des Eingangssignals, was einer Absenkung von ungefähr $-6.02\,\mathrm{dB}$ entspricht.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.82\textwidth]{gain.png}
+	\caption{Beispiel einer Gain-Stufe mit $g=0.5$. Die Amplitude jedes Eingangssamples wird halbiert. Eigene Darstellung nach \parencite{smith2007digitalfilters}.}
+	\label{fig:gain-beispiel}
+\end{figure}
+
+
+Die Gain-Stufe bildet damit einen bewusst einfachen, vollständig datenparallelen Benchmark-Kern. Scaringella et al. beschreiben Vektorisierung als Ausführung derselben Operation auf mehreren Datenwerten durch SIMD-Instruktionen; eine sampleweise Skalierung besitzt daher grundsätzlich ein hohes Vektorisierungspotenzial \parencite{scaringella:hal-02158949}.
+
+
+ 
 
 
 \subsection{IIR-Filter und Biquad-Struktur}
@@ -99,14 +118,18 @@ Ein Infinite-Impulse-Response-Filter (IIR-Filter) verwendet neben aktuellen und 
 
 \noindent Smith leitet IIR-Filter über solche Differenzengleichungen her. Die Koeffizienten $b_i$ beschreiben den Vorwärtszweig, während die Koeffizienten $a_i$ den Rückkopplungszweig bestimmen \parencite{smith2007digitalfilters}.
 
+Die folgende Abbildung zeigt die Wirkung eines Biquad-IIR-Tiefpasses zweiter Ordnung mit einer Grenzfrequenz von $800\,\mathrm{Hz}$. Wie beim FIR-Beispiel enthält das synthetische Eingangssignal Anteile bei 300 Hz und 1800 Hz. Der Frequenzgang und das Ausgangssignal veranschaulichen die Dämpfung hoher Frequenzanteile durch die rekursive Filterstruktur.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{images/biquad.png}
+	\caption{Beispiel eines Biquad-IIR-Tiefpasses zweiter Ordnung mit einer Grenzfrequenz von $f_c=800\,\mathrm{Hz}$. Der Frequenzgang zeigt die Dämpfung hoher Frequenzanteile. Eigene Darstellung nach \parencite{smith2007digitalfilters}.}
+	\label{fig:biquad-beispiel}
+\end{figure}
+
 
 Eine IIR-Implementierung muss die vergangenen Ein- und Ausgangswerte als Zustände speichern und bei jedem Sample aktualisieren. Für den Benchmark ist besonders relevant, dass diese Rückkopplung Datenabhängigkeiten erzeugt und die Vektorisierbarkeit gegenüber rein vorwärtsgerichteten Operationen einschränken kann. Scaringella et al. unterscheiden entsprechend zwischen vektorisierbaren und skalaren Ausdrücken und behandeln rekursive Filter als wichtigen Sonderfall \parencite{scaringella:hal-02158949}. 
-
-
-
-
-
-
 
 
 \subsection{FIR-Filter und Faltung}
@@ -122,6 +145,15 @@ Ein Finite-Impulse-Response-Filter (FIR-Filter) besitzt keine Rückkopplung. Jed
 
 \noindent Smith zeigt, dass diese Differenzengleichung der direkten Faltungsimplementierung eines FIR-Filters entspricht \parencite{smith2007digitalfilters}.
 
+Die folgende Abbildung zeigt einen FIR-Tiefpass mit 31 Taps und einer Grenzfrequenz von $800\,\mathrm{Hz}$. Das synthetische Eingangssignal enthält einen niederfrequenten Anteil bei 300 Hz sowie einen höherfrequenten Anteil bei 1800 Hz; der FIR-Filter dämpft den höherfrequenten Anteil.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{images/fir.png}
+	\caption{Beispiel eines FIR-Tiefpasses mit 31 Taps und einer Grenzfrequenz von $f_c=800\,\mathrm{Hz}$. Der Filter arbeitet ohne Rückkopplung und dämpft hohe Frequenzanteile. Eigene Darstellung nach \parencite{smith2007digitalfilters}.}
+	\label{fig:fir-beispiel}
+\end{figure}
 
 
 Die Koeffizienten $b_k$ werden als Taps bezeichnet. Im Unterschied zum Biquad hängt $y[n]$ nicht von früheren Ausgangswerten ab. Der Aufwand wächst mit der Zahl der Taps. Pro Ausgangssample beträgt die asymptotische Komplexität daher
@@ -168,12 +200,16 @@ Der Betrag eines Koeffizienten beschreibt die Stärke der jeweiligen Frequenzkom
 	\Delta f = \frac{f_s}{N}.
 \end{equation}
 
+In der folgenden Abbildung 
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{images/zeit_frequenz.png}
+	\caption{Vergleich von Zeitbereich und Frequenzbereich. Oben ist ein 440-Hz-Einzelton dargestellt, der im Spektrum einen dominanten Frequenzanteil bei 440 Hz erzeugt. Unten ist ein Mischsignal aus 440 Hz und 1000 Hz dargestellt; beide Anteile erscheinen im Frequenzbereich als separate Peaks. Eigene Darstellung auf Grundlage der DFT/FFT-Spektralanalyse \parencite[S.~102]{tan2018digital}.}
+	\label{fig:zeit-frequenz-vergleich}
+\end{figure}
 
 \noindent Tan und Jiang leiten diese Frequenzauflösung aus Abtastfrequenz und Transformationslänge ab \parencite[S.~101, 103]{tan2018digital}. Eine größere Transformationslänge $N$ verbessert folglich die Frequenzauflösung, erhöht jedoch den Rechenaufwand. 
-
-
-
-
 
 \subsection{Fast-Fourier-Transformation}
 
