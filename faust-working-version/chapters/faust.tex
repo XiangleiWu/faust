@@ -2,31 +2,39 @@
 
 \section{Einführung}
 
-FAUST ist eine Programmiersprache für Audio-Signalverarbeitung. Sie wurde entwickelt, um eine Alternative zu C/C++ zu bieten, mit der sich effizient Signalverarbeitungsbibliotheken, Audio-Plug-ins und eigenständige Anwendungen erstellen lassen. 
-\cite[Vgl.][S. 1]{orlarey:hal-02159014}
+FAUST (Functional Audio Stream) ist eine domänenspezifische Programmiersprache für die Audio-Signalverarbeitung. Sie ist als effiziente Ergänzung zu C/C++ für Signalverarbeitungsbibliotheken, Audio-Plug-ins und eigenständige Anwendungen konzipiert \parencite{orlarey:hal-02159014}.
 
 Anders als visuelle Sprachen wie Max oder Pure Data ist FAUST eine kompilierte Sprache. Der FAUST-Compiler übersetzt FAUST-Programme direkt in C++-Code. Dieser Code ist lauffähig, selbstständig und benötigt keine externe Laufzeitumgebung. Er arbeitet deterministisch und mit konstantem Speicherverbrauch.
 \cite[Vgl.][S. 2]{orlarey:hal-02159014}
 
+Für die vorliegende Arbeit ist FAUST relevant, weil die Sprache Algorithmen der digitalen Signalverarbeitung (Digital Signal Processing, DSP) als funktionale Blockdiagramme beschreibt. Der Compiler erzeugt daraus C++-Code, der in dieselbe Benchmark-Infrastruktur wie eine manuell implementierte C++-Referenz eingebunden werden kann \parencite[S.~2--3]{orlarey:hal-02159014}. Der Vergleich betrifft die vom FAUST-Compiler abgeleitete und eine manuelle Implementierung desselben DSP-Algorithmus.
+
+Die deklarative Blockdiagrammbeschreibung und die Trennung von Spezifikation und Implementierung können Codelänge und Implementierungskomplexität beeinflussen. Compileranalyse und Codegenerierung können sich zudem auf Laufzeit, Speicherverbrauch und Binärgröße auswirken. Ergebnisse aus FAUST-STK deuten für bestimmte physikalische Modelle auf kompaktere FAUST-Quelltexte hin \parencite[S.~5--6]{michon2011fauststk}. Diese Ergebnisse sind nicht ohne Weiteres auf Gain-Stufen, Biquad- und FIR-Filter oder Fast-Fourier-Transformationen (FFTs) übertragbar. Die Überprüfung für diese DSP-Bausteine ist daher Gegenstand der vorliegenden Untersuchung.
+
 Die Besonderheit von FAUST liegt in der formalen Semantik: Jedes Programm beschreibt eine mathematische Funktion, die Eingangssignale in Ausgangssignale transformiert. Der Compiler übersetzt nicht den Programmtext, sondern die dahinterstehende Funktion. Dadurch können zwei syntaktisch unterschiedliche, aber semantisch äquivalente Programme denselben Code erzeugen.
-\cite[Vgl.][S. 2]{orlarey:hal-02159014}
+\parencite{orlarey:hal-02159014}
 
 \section{Programmmodell}
 
-FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale sind diskrete Funktionen der Zeit, Signalprozessoren sind Funktionen auf diesen Signalen, und Kompositionsoperatoren setzen mehrere Signalprozessoren zu größeren Blockdiagrammen zusammen. Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor, vergleichbar mit \texttt{main} in C.
-\cite[Vgl.][S. 3]{orlarey:hal-02159014}
+FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale werden als diskrete Funktionen der Zeit modelliert. Signalprozessoren verarbeiten diese Signale, und Kompositionsoperatoren verbinden mehrere Signalprozessoren zu größeren Blockdiagrammen \parencite[S.~3--4]{orlarey:hal-02159014.
+	
+Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor \ref{lst:faust-minimal} zeigt drei minimale Definitionen.
 
-\begin{CCode}
-	process = 0;         // erzeugt Stille
-	process = _;         // kopiert Eingang auf Ausgang
-	process = +;         // addiert zwei Kanäle (Stereo zu Mono)
-\end{CCode}
+\begin{listing}[htbp]
+	\caption{Minimale FAUST-Signalprozessoren}
+	\label{lst:faust-minimal}
+	\begin{CCode}
+		process = 0;         // erzeugt Stille
+		process = _;         // kopiert Eingang auf Ausgang
+		process = +;         // addiert zwei Kanäle (Stereo zu Mono)
+	\end{CCode}
+\end{listing}
 
-FAUST-Primitive funktionieren wie C-Funktionen, aber auf Signalen: \texttt{sin} wendet die Sinus-Funktion sampleweise an, \texttt{@} ist ein Delay-Operator mit $Y(t) = X(t - D(t))$. \cite[Vgl.][S. 4]{orlarey:hal-02159014}
+FAUST-Primitive funktionieren wie C-Funktionen, aber auf Signalen. Beispielsweise berechnet \texttt{sin} den Sinus jedes Samples eines Eingangssignals. Der Verzögerungsoperator \texttt{@} bildet ein Signal mit einer zeitvariablen Verzögerung ab \parencite{orlarey:hal-02159014}.
 
 \section{Syntax: Blockdiagramm-Komposition}
 
-FAUST stellt fünf Kompositionsoperatoren bereit, die als Verallgemeinerung der Funktionskomposition $\circ$ zu verstehen sind: \cite[Vgl.][S. 4]{orlarey:hal-02159014}
+Tabelle~\ref{tab:faust-operatoren} fasst die fünf Kompositionsoperatoren der FAUST-Blockdiagrammalgebra zusammen \parencite[S.~5]{orlarey:hal-02159014}.
 
 \begin{table}[htbp]
 	\centering
@@ -45,93 +53,104 @@ FAUST stellt fünf Kompositionsoperatoren bereit, die als Verallgemeinerung der 
 	\end{tabular}
 \end{table}
 
-Beispiel für sequenzielle Komposition: \texttt{process = + : abs;} verbindet die Ausgabe einer Addition mit einem Absolutwert. \cite[Vgl.][S. 4]{orlarey:hal-02159014}
+Beispiel für sequenzielle Komposition: \texttt{process = + : abs;} verbindet die Ausgabe einer Addition mit einem Absolutwert.  \parencite[S. 4]{orlarey:hal-02159014}
 
-Beispiel für rekursive Komposition: \texttt{process = + ~ \_;} erzeugt einen Integrator mit $Y(t) = X(t) + Y(t-1)$. \cite[Vgl.][S. 4]{orlarey:hal-02159014}
+Beispiel für rekursive Komposition: \texttt{process = + ~ \_;} erzeugt einen Integrator mit einer impliziten Verzögerung um ein Sample $Y(t) = X(t) + Y(t-1)$.  \parencite[S. 4]{orlarey:hal-02159014}
 
-Ein vollständigeres Beispiel ist ein Rauschgenerator: \cite[Vgl.][S. 5]{orlarey:hal-02159014}
+Listing~\ref{lst:faust-rauschgenerator} zeigt einen Rauschgenerator mit rekursiver Pseudozufallszahlenerzeugung und einem Regler für die Signalamplitude \parencite[S. ~5]{orlarey:hal-02159014}
 
-\begin{CCode}
-	random = +(12345) ~ *(1103515245);
-	noise = random / 2147483647.0;
-	process = noise * vslider("noise[style:knob]", 0, 0, 100, 0.1) / 100;
-\end{CCode} \cite[Vgl.][S. 5]{orlarey:hal-02159014}
+\begin{listing}[htbp]
+	\caption{Rauschgenerator mit Lautstärkeregler in FAUST}
+	\label{lst:faust-rauschgenerator}
+		\begin{CCode}
+			random = +(12345) ~ *(1103515245);
+			noise = random / 2147483647.0;
+			process = noise * vslider("noise[style:knob]", 0, 0, 100, 0.1) / 100;
+		\end{CCode} \cite[Vgl.][S. 5]{orlarey:hal-02159014}
+\end{listing}
 
-Die erste Zeile nutzt eine rekursive Komposition mit einem 1-Sample-Delay, um eine Pseudo-Zufallszahl gemäß der Formel $R(t)=12345+1103515245 \cdot R(t-1)$ zu berechnen. Die weiteren Zeilen skalieren diesen Wert in den Bereich $[-1,1]$ und fügen einen interaktiven Lautstärkeregler hinzu, um das resultierende Signal zu steuern.
+Die rekursive Definition erzeugt eine Pseudozufallsfolge. Die nachfolgenden Definitionen skalieren sie in den Bereich von minus eins bis eins und verknüpfen sie mit einem interaktiven Lautstärkeregler, um den resultierenden Signal zu steuern \parencite[S.~6]{orlarey:hal-02159014}.
 
 \section{Semantik}
-FAUST basiert auf einer denotationale Semantik, sie beschreibt die Bedeutung eines Programms, indem sie es direkt als mathematisches Objekt definiert, in diesem Fall als eine Funktion $f$, die Eingangssignale in Ausgangssignale umwandelt. Anstatt den Ablauf der Berechnung Schritt für Schritt zu beschreiben, wird das Programm als ein fertiger Signalprozessor betrachtet, der eine mathematische Abbildung zwischen Signalfolgen darstellt. Dies ermöglicht es, komplexe Systeme durch die Kombination solcher Funktionen mathematisch präzise zu beschreiben.
+FAUST besitzt eine denotationale Semantik. Ein Programm beschreibt nicht eine Folge imperativer Einzelschritte, sondern die mathematische Bedeutung eines Signalprozessors. Digitale Signale werden dabei als diskrete Funktionen der Zeit aufgefasst. Ein Signalprozessor ist entsprechend eine Funktion, die Eingangs- in Ausgangssignale überführt \parencite[S.~2--4]{orlarey:hal-02159014}.
+
+Diese Sichtweise trennt die Spezifikation eines DSP-Algorithmus von dessen konkreter Implementierung. Die FAUST-Quellbeschreibung legt fest, welche Signaltransformation berechnet werden soll. Der Compiler entscheidet anschließend, wie sie effizient in C++ umgesetzt wird. Semantisch äquivalente Blockdiagramme können nach der Normalisierung dieselbe Implementierung erzeugen \parencite[S.~3, S.~12]{orlarey:hal-02159014}.
+
+Für die vorliegende Arbeit ist diese Trennung wesentlich. Die FAUST-Variante und die manuelle C++-Referenz können unterschiedlich strukturiert sein. Beide müssen jedoch denselben Algorithmus und dieselbe Ein-/Ausgabesemantik realisieren. Der Vergleich bewertet daher die Qualität der abgeleiteten Implementierung und nicht lediglich Unterschiede in der Oberflächensyntax.
 
 \section{Compiler-Architektur}
 
-Der FAUST-Compiler arbeitet in mehreren Schritten, bevor C++-Code erzeugt wird.
-\cite[Vgl.][S. 10-12]{orlarey:hal-02159014}
+Der FAUST-Compiler verarbeitet eine Quellbeschreibung in mehreren aufeinander aufbauenden Analysephasen. Diese Phasen trennen die sprachliche Auswertung, die Ermittlung der mathematischen Bedeutung und die Optimierungsvorbereitung von der anschließenden C++-Codegenerierung \parencite[S.~10--13]{orlarey:hal-02159014}.
+
 \begin{enumerate}
-	\item \textbf{Parsen.} Alle Quelldateien werden eingelesen und in eine Liste 
-	von Definitionen umgewandelt. Redefinitionen sind nicht erlaubt.
+	\item \textbf{Einlesen und Parsen der Quelldateien.} Der Compiler liest die Hauptdatei sowie über \texttt{import}-Direktiven eingebundene Dateien rekursiv ein. Das Ergebnis ist eine Menge benannter Definitionen. \parencite[S.~10--11]{orlarey:hal-02159014}.
+
+	\item \textbf{Auswertung der Blockdiagrammdefinitionen.} Algorithmische Definitionen werden ausgewertet und in eine explizite Blockdiagrammbeschreibung in Normalform überführt. Für die weitere Analyse liegen damit die primitiven Signaloperationen und ihre Verschaltung unmittelbar vor \parencite[S.~11--12]{orlarey:hal-02159014}.
 	
-	\item \textbf{Blockdiagramm-Auswertung.} Algorithmische Definitionen werden 
-	in flache, primitive Form gebracht (Normalform).
+	\item \textbf{Symbolische Semantikanalyse und Normalisierung.} Der Compiler propagiert symbolische Eingangssignale durch das Blockdiagramm. Daraus leitet er für jedes Ausgangssignal eine mathematische Gleichung ab. Anschließend normalisiert er diese Gleichungen, sodass semantisch äquivalente Blockdiagramme dieselbe Repräsentation erhalten. Aufeinanderfolgende Verzögerungen können zusammengefasst werden. Konstante Faktoren können so angeordnet werden, dass Verzögerungsleitungen wiederverwendbar sind \parencite[S.~12]{orlarey:hal-02159014}.
 	
-	\item \textbf{Semantik entdecken.} Symbolische Signale werden durch das 
-	Blockdiagramm propagiert, um die mathematische Gleichung jedes 
-	Ausgangssignals zu erhalten. Verschiedene Blockdiagramme, die dasselbe 
-	berechnen, ergeben die gleichen Gleichungen.
+	Listing~\ref{lst:faust-aequivalenz} zeigt zwei syntaktisch unterschiedliche Programme mit derselben Signalgleichung.
 	
-	Zwei äquivalente Programme:
 	
-	\begin{CCode}
-		process = /(2) : @(10);
-		process = *(2) : @(7) : /(4) : @(3);
-	\end{CCode}
+	\begin{listing}[htbp]
+		\caption{Semantisch äquivalente FAUST-Beschreibungen}
+		\label{lst:faust-aequivalenz}
+		\begin{CCode}
+			process = /(2) : @(10);
+			process = *(2) : @(7) : /(4) : @(3);
+		\end{CCode}
+	\end{listing}
+	Beide Beschreibungen ergeben nach der Normalisierung dieselbe Ausgangsgleichung. Sie können deshalb auf dieselbe optimierte Implementierung abgebildet werden \parencite[S.~12]{orlarey:hal-02159014}.
 	
-	Beide ergeben $Y(t) = 0.5 \cdot X(t - 10)$. Der Compiler normalisiert solche Gleichungen, um Delay-Lines zu teilen und Operationen zu vereinfachen.
+	\item \textbf{Typ- und Bereichsanalyse.} Für jede resultierende Signalgleichung ermittelt der Compiler den numerischen Datentyp, den möglichen Wertebereich, den Berechnungszeitpunkt, die Ausführungsgeschwindigkeit und die Parallelisierbarkeit. Konstante Signale können einmalig berechnet werden. Bedienelemente können blockweise und Audiosignale sampleweise verarbeitet werden. Diese Unterscheidungen sind Implementierungsdetails; aus Sicht der FAUST-Programmierung bleiben alle Werte reguläre Audiosignale \parencite[S.~12--13]{orlarey:hal-02159014}.
 	
-	\item \textbf{Typzuweisung} Jedes Signal bekommt einen Typ mit fünf Eigenschaften:
-		\begin{itemize}
-			\item  \textbf{Datentyp} Integer oder Float
-			\item  \textbf{Wertebereich} Minimale und maximale Werte eines Signals
-			\item  \textbf{Berechnungszeitpunkt} Zur Kompilier-, Initialiserungs- oder Laufzeit
-			\item  \textbf{Geschwindigkeit} Konstant, langsam (pro Block) oder schnell (pro Sample)
-			\item  \textbf{Parallelisierbarkeit} Ja bei unabhängigen Signalen, aber nicht bei rekursiven Abhängigkeiten
-		\end{itemize}
-	Aus Benutzersicht sind alle Signale volle Audiosignale; die Geschwindigkeitsunterscheidung dient nur der internen Optimierung.
+	\item \textbf{Vorkommenanalyse.} Der Compiler untersucht, in welchen Kontexten Teilausdrücke auftreten und ob sie gemeinsam verwendet werden. Teure gemeinsame Teilausdrücke können in temporären Variablen zwischengespeichert werden. Dies gilt auch für Ausdrücke, die zwischen unterschiedlichen Geschwindigkeitskontexten benötigt werden. Nicht jeder mehrfach auftretende Teilausdruck wird jedoch automatisch ausgelagert \parencite[S.~13]{orlarey:hal-02159014}.
 	
-	\item \textbf{Vorkommenanalyse} Teilausdrücke werden auf Wiederverwendbarkeit geprüft. Häufig verwendete Ausdrücke werden in Cache-Variablen ausgelagert.
+	Erst nach diesen Phasen beginnt die Codegenerierung. Der Compiler übersetzt somit nicht die ursprüngliche Schreibweise des Programms, sondern eine analysierte und normalisierte Repräsentation seiner Signalverarbeitung \parencite[S.~13]{orlarey:hal-02159014}.
 \end{enumerate}
+
+Erst nach diesen Phasen beginnt die Codegenerierung. Der Compiler übersetzt somit nicht die ursprüngliche Schreibweise des Programms, sondern eine analysierte und normalisierte Repräsentation seiner Signalverarbeitung \parencite[S.~13]{orlarey:hal-02159014}.
 
 \section {Codegenerierung}
 
-FAUST bietet drei Codegenerierungsstrategien, die aufeinander aufbauen: 
-\cite[Vgl.][S. 12-20]{orlarey:hal-02159014}
+Auf Basis der analysierten Signalgleichungen erzeugt der FAUST-Compiler C++-Code. Die skalare Variante bildet die Grundlage. Der Vektor-Modus strukturiert diesen Code für die automatische Vektorisierung um. Der Parallel-Modus ergänzt den Vektor-Code um Direktiven für die nebenläufige Ausführung \parencite[S.~13--21]{orlarey:hal-02159014}.
 
 \subsection{Skalarer Modus}
-Ein einzelner Loop berechnet sampleweise die Ausgänge. Für jede Addition $E_1 + E_2$ wird der Code von $E_1$ und $E_2$ generiert und mit einem $+$ verbunden. Wird das Ergebnis mehrfach verwendet, wird eine Zwischenspeicher-Variable angelegt.
+Im skalaren Modus berechnet eine Schleife die Ausgänge sampleweise. Für jede Addition $E_1 + E_2$ wird der Code von $E_1$ und $E_2$ generiert und mit einem $+$ verbunden. Wird das Ergebnis mehrfach verwendet, wird eine Zwischenspeicher-Variable angelegt, um redundante Berechnungen zu vermeiden \parencite[S.~13--14]{orlarey:hal-02159014}.
 
-\begin{CCode}
-	// Stereo zu Mono: kein Caching nötig
-	process = +;
-	$\rightarrow$ output0[i] = input0[i] + input1[i];
-	
-	// Split: Ergebnis wird zwischengespeichert
-	process = + <: _,_;
-	$\rightarrow$ float fTemp0 = input0[i] + input1[i];
-	output0[i] = fTemp0;
-	output1[i] = fTemp0;
-\end{CCode} \cite[Vgl.][S. 13]{orlarey:hal-02159014}
+Listing~\ref{lst:faust-caching} veranschaulicht den Unterschied zwischen einer direkten Berechnung und einer zwischengespeicherten Berechnung.
+
+
+\begin{listing}[htbp]
+	\caption{Zwischenspeicherung eines gemeinsam verwendeten Teilausdrucks}
+	\label{lst:faust-caching}
+	\begin{CCode}
+		// Stereo zu Mono: kein Caching nötig
+		process = +;
+		$\rightarrow$ output0[i] = input0[i] + input1[i];
+		
+		
+		// Split: Ergebnis wird zwischengespeichert
+		process = + <: ,;
+		$\rightarrow$ float fTemp0 = input0[i] + input1[i];
+		output0[i] = fTemp0;
+		output1[i] = fTemp0;
+	\end{CCode}
+\end{listing}
+
 \subsection{Vektor-Modus}
-Moderne C++-Compiler nutzen SIMD-Instruktionen für Vektoroperationen (theoretischer Speedup: 4x). Damit diese Vektorisierung funktioniert, darf der Code nicht zu komplex verschachtelt sein.
+Der Vektor-Modus erzeugt mehrere einfachere Schleifen, die über Vektoren kommunizieren. Dadurch erhält der nachgelagerte C++-Compiler eine Codeform, die die automatische Vektorisierung erleichtert. Gemeinsam verwendete, rekursive oder für Verzögerungsleitungen benötigte Ausdrücke können in eigenen Schleifen berechnet werden. Das Ergebnis ist ein gerichteter azyklischer Graph aus Berechnungsschleifen \parencite[S.~15--17]{orlarey:hal-02159014}.
 
-Der Vektor-Modus teilt den einen großen Loop in mehrere kleine, einfache Loops auf, die über Vektoren kommunizieren. Komplexe oder gemeinsam benutzte Ausdrücke bekommen eigene Loops. Das Ergebnis ist ein gerichteter Graph (DAG) aus Schleifen.
+Die automatische Vektorisierung unterscheidet vektorisierbare von nicht vektorisierbaren Ausdrücken anhand von Typ- und Kontextinformationen. Die dadurch erzielbare Beschleunigung hängt von Algorithmus, Compiler und Zielarchitektur ab und darf daher nicht als allgemeiner Leistungsgewinn interpretiert werden \parencite{scaringella:hal-02158949}.
 
 \subsection{Parallel-Modus}
 
-Der Parallel-Modus fügt OpenMP-Direktiven in den Vektor-Code ein, um unabhängige Schleifen parallel auf mehreren CPU-Kernen auszuführen. Der Algorithmus: Der topologisch sortierte Schleifengraph wird in Ebenen eingeteilt. Schleifen derselben Ebene sind unabhängig und können parallel laufen. Für jede Ebene erzeugt der Compiler eine \texttt{\#pragma omp}sections-Direktive. Enthält eine Ebene nur eine Schleife, wird geprüft, ob diese parallelisierbar ist (keine rekursiven Abhängigkeiten). 
-\cite[Vgl.][S. 16-21]{orlarey:hal-02159014}
+Der Parallel-Modus baut auf dem Vektor-Modus auf und ergänzt den erzeugten C++-Code um Open Multi-Processing (OpenMP)-Direktiven. Unabhängige Schleifen desselben Ausführungsniveaus können parallel ausgeführt werden. Rekursive Abhängigkeiten begrenzen diese Parallelisierung \parencite[S.~17--21]{orlarey:hal-02159014}.
 
+Spätere Arbeiten untersuchen zusätzlich dynamische Scheduling-Verfahren für den Schleifengraphen. Diese Verfahren ändern jedoch nichts daran, dass nutzbarer Parallelismus und der Aufwand der Synchronisierung von der Struktur des Signalprozessors abhängen \parencite{letz:hal-02158924}.
 \subsection{Generierte Code}
 
-Der erzeugte C++-Code ist eine Klasse mit diesen Kernmethoden:
+Der erzeugte C++-Code wird als Klasse ausgegeben. Zu den zentralen Methoden zählen die Abfrage der Ein- und Ausgänge, die Initialisierung, die Beschreibung der Benutzeroberfläche und die eigentliche Signalverarbeitung \parencite[S.~6--7]{orlarey:hal-02159014}.
 
 \begin{itemize}
 	\item \texttt{getNumInputs() / getNumOutputs()} - Anzahl Ein-/Ausgänge
@@ -141,27 +160,24 @@ Der erzeugte C++-Code ist eine Klasse mit diesen Kernmethoden:
 \end{itemize}
 
 \section{Backends und Architekturdateien}
-FAUST trennt die Signalverarbeitungslogik von der Einbettung in Audio-Systeme. Dazu dienen Architekturdateien, die als Wrapper zwischen dem erzeugten C++-Code und dem Zielsystem stehen. Ein einziges FAUST-Programm kann so ohne Änderung für alle diese Formate \cite[Vgl.][Tabelle 3, S. 7]{orlarey:hal-02159014} kompiliert werden. Neue Architekturdateien lassen sich einfach hinzufügen.\cite[Vgl.][S. 7]{orlarey:hal-02159014}
+Architekturdateien trennen die Signalverarbeitungslogik von der Einbettung in ein Audio- oder Benutzeroberflächensystem. Sie umschließen die generierte C++-Klasse. Dadurch kann dieselbe FAUST-Quellbeschreibung für verschiedene Anwendungen und Plug-in-Formate verwendet werden \parencite[S.~8]{orlarey:hal-02159014}.
+
+Die in diesem Abschnitt dargestellte Architekturauswahl stammt aus einer älteren FAUST-Version. Für aktuelle Zielsprachen, Zielplattformen und Architekturdateien ist deshalb die offizielle FAUST-Dokumentation maßgeblich \parencite{faust_manual}.
 
 \section{Performance}
 
-Benchmarks mit drei Testprogrammen auf verschiedenen Hardware-Konfigurationen zeigen: \cite[Vgl.][S. 22-28]{orlarey:hal-02159014}
+
+Die in der Grundquelle dargestellten Benchmarks vergleichen mehrere Testprogramme auf bestimmten Hardware- und Compilerkonfigurationen. Sie zeigen, dass der Nutzen von Vektorisierung und Parallelisierung von der Struktur des Signalprozessors, dem verfügbaren Parallelismus und der Speicherbandbreite abhängt \parencite[S.~22--28]{orlarey:hal-02159014}.
+
+Die Messungen wurden mit einer historischen FAUST-Version sowie den damals verfügbaren Compilern und Testsystemen durchgeführt. Sie dienen deshalb der Einordnung der Compilerstrategien, erlauben jedoch keine Vorhersage für die in dieser Arbeit verwendete Hardware, Compilerkonfiguration oder Benchmark-Infrastruktur \parencite[S.~22--23]{orlarey:hal-02159014}.
 
 \begin{itemize}
-		\item \textbf{Einfache Programme} (z.\,B. Signal kopieren): Der skalare 
-		Modus ist dem Vektor-Modus ebenbürtig. Parallele Versionen sind langsamer, 
-		da die Speicherbandbreite bereits ausgelastet ist. \cite[Vgl.][S. 22]{orlarey:hal-02159014}
-		
-		\item \textbf{Programme mit mittlerem Parallelismus} (z.\,B. Reverb): 
-		ICC zeigt moderate Speedups bei Vektorisierung und Parallelisierung.
-		\cite[Vgl.][S. 22-23]{orlarey:hal-02159014}
-		
-		\item \textbf{Programme mit hohem Parallelismus} (z.\,B. 32 parallele 
-		Strings): Deutliche Performance-Steigerung vom skalaren über den 
-		vektorisierten zum parallelen Modus. \cite[Vgl.][S. 23]{orlarey:hal-02159014}
+	\item \textbf{Speicherbandbreitenbegrenzte Programme.} Im Benchmark \texttt{copy1} waren die skalare und die vektorisierte Variante ähnlich schnell. Die parallele Variante schnitt wegen der geteilten Speicherbandbreite schlechter ab \parencite[S.~22--23]{orlarey:hal-02159014}.
+
+	\item \textbf{Programme mit begrenztem Parallelismus.} Für die Freeverb-Implementierung berichten die Autoren bei Verwendung des Intel-C++-Compilers auf zwei der drei Testsysteme moderate Zugewinne durch Vektorisierung und Parallelisierung \parencite[S.~24]{orlarey:hal-02159014}.
+	
+	\item \textbf{Programme mit hohem Parallelismus.} Für \texttt{karplus32} und \texttt{rms8} wurden mit dem Intel-C++-Compiler deutliche Leistungssteigerungen durch Vektorisierung und Parallelisierung beobachtet. Die Höhe des Gewinns blieb jedoch von Hardware und Speicherbandbreite abhängig \parencite[S.~24, S.~27--28]{orlarey:hal-02159014}
 \end{itemize}
 
-Die Wirksamkeit hängt also stark vom jeweiligen Programm ab.
-
 \section{Zusammenfassung}
-FAUST ist eine kompilierte Sprache für Audio-Signalverarbeitung mit klarer formaler Semantik. Der Compiler erzeugt effizienten, eigenständigen C++-Code, der mit handgeschriebenem Code konkurrieren kann. Die drei Codegenerierungsstrategien (skalar, vektorisiert, parallel) und die Vielzahl von Architekturdateien machen FAUST flexibel für unterschiedliche Einsatzzwecke.
+FAUST ist eine kompilierte Sprache für Audio-Signalverarbeitung mit formaler Semantik.  Die Sprache trennt die Beschreibung eines Signalprozessors von dessen Implementierung und ermöglicht dem Compiler, daraus eigenständigen C++-Code zu erzeugen \parencite{orlarey:hal-02159014}. Dür die vorliegende Arbeit ist insbesondere relevant, dass dieselben DSP-Algorithmen sowohl als FAUST-Programm als auch als manuelle C++-Referenz implementiert und unter einer gemeinsamen Benchmark-Infrastruktur verglichen werden könne
