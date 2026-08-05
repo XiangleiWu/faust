@@ -62,12 +62,12 @@ Der Baustein benötigt pro Sample lediglich eine Multiplikation und dient deshal
 	g = 10^{G_{\mathrm{dB}}/20}.
 \end{equation}
 \noindent Diese Umrechnung folgt aus der Definition eines Amplitudenverhältnisses in Dezibel \parencite{smith2007introduction}.
-Abbildung~\ref{fig:Verstärkungsstufe-beispiel} veranschaulicht eine Verstärkungsstufe mit $g=0.5$. Das Ausgangssignal besitzt für jedes Sample die halbe Amplitude des Eingangssignals, was einer Absenkung von ungefähr $-6.02~\mathrm{dB}$ entspricht.
+Abbildung~\ref{fig:Verstaerkungsstufe-beispiel} veranschaulicht eine Verstärkungsstufe mit $g=0.5$. Das Ausgangssignal besitzt für jedes Sample die halbe Amplitude des Eingangssignals, was einer Absenkung von ungefähr $-6.02~\mathrm{dB}$ entspricht.
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=0.82\textwidth]{gain.png}
 	\caption{Beispiel einer Verstärkungsstufe mit $g=0.5$. Die Amplitude jedes Eingangssamples wird halbiert. Eigene Darstellung nach \parencite{smith2007introduction}.}
-	\label{fig:Verstärkungsstufe-beispiel}
+	\label{fig:Verstaerkungsstufe-beispiel}
 \end{figure}
 Die Verstärkungsstufe bildet einen einfachen, vollständig datenparallelen Benchmark-Kern. Vektorisierung bezeichnet dabei die Ausführung derselben Operation auf mehreren Datenwerten durch Single-Instruction-Multiple-Data-Instruktionen (SIMD-Instruktionen). Eine sampleweise Skalierung besitzt daher ein hohes Vektorisierungspotenzial \parencite{scaringella:hal-02158949}.
 \subsection{Rekursionsfilter (IIR-Filter) und Biquad-Struktur}

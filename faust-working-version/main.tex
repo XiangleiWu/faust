@@ -14,7 +14,20 @@
 \addbibresource{references.bib}
 \graphicspath{{images/}}  % Location of images and graphics
 \logofile{logo}           % Logo file: images/logo.pdf (no logo: \logofile{})
-\usepackage{tikz}
+\usepackage{tikz, caption}
+\lstdefinelanguage{Faust}{
+	morekeywords={process,import,with,declare,library,component,environment},
+	sensitive=true,
+	morecomment=[l]{//},
+	morecomment=[s]{/*}{*/},
+	morestring=[b]",
+	literate=
+	{~}{{\textasciitilde}}1
+}
+
+\lstnewenvironment{FaustCode}[1][]
+{\lstset{language=Faust, escapeinside={/+}{+/}, #1}}
+{}
 %%%-----------------------------------------------------------------------------
 \begin{document}
 %%%-----------------------------------------------------------------------------

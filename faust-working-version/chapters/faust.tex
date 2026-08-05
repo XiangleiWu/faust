@@ -17,17 +17,22 @@ Die Besonderheit von FAUST liegt in der formalen Semantik: Jedes Programm beschr
 
 FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale werden als diskrete Funktionen der Zeit modelliert. Signalprozessoren verarbeiten diese Signale, und Kompositionsoperatoren verbinden mehrere Signalprozessoren zu größeren Blockdiagrammen \parencite[S.~3--4]{orlarey:hal-02159014}.
 	
-Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor \ref{lst:faust-minimal} zeigt drei minimale Definitionen.
+Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor \ref{prog:faust-minimal} zeigt drei minimale Definitionen.
 
-\begin{listing}[htbp]
+
+
+
+\begin{program}
 	\caption{Minimale FAUST-Signalprozessoren}
-	\label{lst:faust-minimal}
-	\begin{CCode}
+	\label{prog:faust-minimal}
+	\begin{GenericCode}
 		process = 0;         // erzeugt Stille
 		process = _;         // kopiert Eingang auf Ausgang
 		process = +;         // addiert zwei Kanäle (Stereo zu Mono)
-	\end{CCode}
-\end{listing}
+	\end{GenericCode}
+\end{program}
+
+
 
 FAUST-Primitive funktionieren wie C-Funktionen, aber auf Signalen. Beispielsweise berechnet \texttt{sin} den Sinus jedes Samples eines Eingangssignals. Der Verzögerungsoperator \texttt{@} bildet ein Signal mit einer zeitvariablen Verzögerung ab \parencite{orlarey:hal-02159014}.
 
@@ -56,17 +61,18 @@ Beispiel für sequenzielle Komposition: \texttt{process = + : abs;} verbindet di
 
 Beispiel für rekursive Komposition: \texttt{process = + ~ \_;} erzeugt einen Integrator mit einer impliziten Verzögerung um ein Sample $Y(t) = X(t) + Y(t-1)$.  \parencite[S. 4]{orlarey:hal-02159014}
 
-Listing~\ref{lst:faust-rauschgenerator} zeigt einen Rauschgenerator mit rekursiver Pseudozufallszahlenerzeugung und einem Regler für die Signalamplitude \parencite[S. ~5]{orlarey:hal-02159014}
+Programm~\ref{prog:faust-rauschgenerator} zeigt einen Rauschgenerator mit rekursiver Pseudozufallszahlenerzeugung und einem Regler für die Signalamplitude \parencite[S. ~5]{orlarey:hal-02159014}
 
-\begin{listing}[htbp]
+
+\begin{program}
 	\caption{Rauschgenerator mit Lautstärkeregler in FAUST}
-	\label{lst:faust-rauschgenerator}
-		\begin{CCode}
-			random = +(12345) ~ *(1103515245);
-			noise = random / 2147483647.0;
-			process = noise * vslider("noise[style:knob]", 0, 0, 100, 0.1) / 100;
-		\end{CCode} \cite[Vgl.][S. 5]{orlarey:hal-02159014}
-\end{listing}
+	\label{prog:faust-rauschgenerator}
+	\begin{GenericCode}
+		random = +(12345) ~ *(1103515245);
+		noise = random / 2147483647.0;
+		process = noise * vslider("noise[style:knob]", 0, 0, 100, 0.1) / 100;
+	\end{GenericCode}
+\end{program}
 
 Die rekursive Definition erzeugt eine Pseudozufallsfolge. Die nachfolgenden Definitionen skalieren sie in den Bereich von minus eins bis eins und verknüpfen sie mit einem interaktiven Lautstärkeregler, um den resultierenden Signal zu steuern \parencite[S.~6]{orlarey:hal-02159014}.
 
@@ -88,17 +94,17 @@ Der FAUST-Compiler verarbeitet eine Quellbeschreibung in mehreren aufeinander au
 	
 	\item \textbf{Symbolische Semantikanalyse und Normalisierung.} Der Compiler propagiert symbolische Eingangssignale durch das Blockdiagramm. Daraus leitet er für jedes Ausgangssignal eine mathematische Gleichung ab. Anschließend normalisiert er diese Gleichungen, sodass semantisch äquivalente Blockdiagramme dieselbe Repräsentation erhalten. Aufeinanderfolgende Verzögerungen können zusammengefasst werden. Konstante Faktoren können so angeordnet werden, dass Verzögerungsleitungen wiederverwendbar sind \parencite[S.~12]{orlarey:hal-02159014}.
 	
-	Listing~\ref{lst:faust-aequivalenz} zeigt zwei syntaktisch unterschiedliche Programme mit derselben Signalgleichung.
+	Programm~\ref{prog:faust-aequivalenz} zeigt zwei syntaktisch unterschiedliche Programme mit derselben Signalgleichung.
 	
-	
-	\begin{listing}[htbp]
+	\begin{program}
 		\caption{Semantisch äquivalente FAUST-Beschreibungen}
-		\label{lst:faust-aequivalenz}
-		\begin{CCode}
+		\label{prog:faust-aequivalenz}
+		\begin{GenericCode}
 			process = /(2) : @(10);
 			process = *(2) : @(7) : /(4) : @(3);
-		\end{CCode}
-	\end{listing}
+		\end{GenericCode}
+	\end{program}
+
 	Beide Beschreibungen ergeben nach der Normalisierung dieselbe Ausgangsgleichung. Sie können deshalb auf dieselbe optimierte Implementierung abgebildet werden \parencite[S.~12]{orlarey:hal-02159014}.
 	
 	\item \textbf{Typ- und Bereichsanalyse.} Für jede resultierende Signalgleichung ermittelt der Compiler den numerischen Datentyp, den möglichen Wertebereich, den Berechnungszeitpunkt, die Ausführungsgeschwindigkeit und die Parallelisierbarkeit. Konstante Signale können einmalig berechnet werden. Bedienelemente können blockweise und Audiosignale sampleweise verarbeitet werden. Diese Unterscheidungen sind Implementierungsdetails; aus Sicht der FAUST-Programmierung bleiben alle Werte reguläre Audiosignale \parencite[S.~12--13]{orlarey:hal-02159014}.
@@ -117,25 +123,24 @@ Auf Basis der analysierten Signalgleichungen erzeugt der FAUST-Compiler C++-Code
 \subsection{Skalarer Modus}
 Im skalaren Modus berechnet eine Schleife die Ausgänge sampleweise. Für jede Addition $E_1 + E_2$ wird der Code von $E_1$ und $E_2$ generiert und mit einem $+$ verbunden. Wird das Ergebnis mehrfach verwendet, wird eine Zwischenspeicher-Variable angelegt, um redundante Berechnungen zu vermeiden \parencite[S.~13--14]{orlarey:hal-02159014}.
 
-Listing~\ref{lst:faust-caching} veranschaulicht den Unterschied zwischen einer direkten Berechnung und einer zwischengespeicherten Berechnung.
+Programm~\ref{prog:faust-caching} veranschaulicht den Unterschied zwischen einer direkten Berechnung und einer zwischengespeicherten Berechnung.
 
 
-\begin{listing}[htbp]
+\begin{program}
 	\caption{Zwischenspeicherung eines gemeinsam verwendeten Teilausdrucks}
-	\label{lst:faust-caching}
+	\label{prog:faust-caching}
 	\begin{CCode}
 		// Stereo zu Mono: kein Caching nötig
 		process = +;
-		$\rightarrow$ output0[i] = input0[i] + input1[i];
-		
+		/+$\rightarrow$+/ output0[i] = input0[i] + input1[i];
 		
 		// Split: Ergebnis wird zwischengespeichert
 		process = + <: ,;
-		$\rightarrow$ float fTemp0 = input0[i] + input1[i];
+		/+$\rightarrow$+/ float fTemp0 = input0[i] + input1[i];
 		output0[i] = fTemp0;
 		output1[i] = fTemp0;
 	\end{CCode}
-\end{listing}
+\end{program}
 
 \subsection{Vektor-Modus}
 Der Vektor-Modus erzeugt mehrere einfachere Schleifen, die über Vektoren kommunizieren. Dadurch erhält der nachgelagerte C++-Compiler eine Codeform, die die automatische Vektorisierung erleichtert. Gemeinsam verwendete, rekursive oder für Verzögerungsleitungen benötigte Ausdrücke können in eigenen Schleifen berechnet werden. Das Ergebnis ist ein gerichteter azyklischer Graph aus Berechnungsschleifen \parencite[S.~15--17]{orlarey:hal-02159014}.
