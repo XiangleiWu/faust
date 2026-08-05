@@ -1,5 +1,4 @@
 \chapter{Faust: Functional Audio Stream}
-
 \section{Einführung}
 
 FAUST (Functional Audio Stream) ist eine domänenspezifische Programmiersprache für die Audio-Signalverarbeitung. Sie ist als effiziente Ergänzung zu C/C++ für Signalverarbeitungsbibliotheken, Audio-Plug-ins und eigenständige Anwendungen konzipiert \parencite{orlarey:hal-02159014}.
@@ -16,7 +15,7 @@ Die Besonderheit von FAUST liegt in der formalen Semantik: Jedes Programm beschr
 
 \section{Programmmodell}
 
-FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale werden als diskrete Funktionen der Zeit modelliert. Signalprozessoren verarbeiten diese Signale, und Kompositionsoperatoren verbinden mehrere Signalprozessoren zu größeren Blockdiagrammen \parencite[S.~3--4]{orlarey:hal-02159014.
+FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale werden als diskrete Funktionen der Zeit modelliert. Signalprozessoren verarbeiten diese Signale, und Kompositionsoperatoren verbinden mehrere Signalprozessoren zu größeren Blockdiagrammen \parencite[S.~3--4]{orlarey:hal-02159014}.
 	
 Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor \ref{lst:faust-minimal} zeigt drei minimale Definitionen.
 

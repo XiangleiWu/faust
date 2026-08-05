@@ -80,7 +80,7 @@ Abbildung~\ref{fig:biquad-beispiel} zeigt die Wirkung eines Biquad-IIR-Tiefpasse
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/biquad.png}
-	\caption{Beispiel eines Biquad-IIR-Tiefpasses zweiter Ordnung mit einer Grenzfrequenz von $f_c=800~\mathrm{Hz}$. Der Frequenzgang zeigt die Dämpfung hoher Frequenzanteile. Eigene Darstellung nach \parencite{smith2007introduction}.}
+	\caption{Beispiel eines Biquad-IIR-Tiefpasses zweiter Ordnung mit einer Grenzfrequenz von $f_c=800~\mathrm{Hz}$. Der Frequenzgang zeigt die Dämpfung hoher Frequenzanteile. Darstellung nach \parencite{smith2007introduction}.}
 	\label{fig:biquad-beispiel}
 \end{figure}
 Eine IIR-Implementierung muss die vergangenen Ein- und Ausgangswerte als Zustände speichern und bei jedem Sample aktualisieren. Für den Benchmark ist besonders relevant, dass diese Rückkopplung Datenabhängigkeiten erzeugt und die Vektorisierbarkeit gegenüber rein vorwärtsgerichteten Operationen einschränken kann. Entsprechend wird zwischen vektorisierbaren und skalaren Ausdrücken unterschieden; rekursive Filter bilden dabei einen wichtigen Sonderfall \parencite{scaringella:hal-02158949}.
@@ -94,7 +94,7 @@ Abbildung~\ref{fig:fir-beispiel} zeigt einen FIR-Tiefpass mit 31 Filterkoeffizie
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/fir.png}
-	\caption{Beispiel eines FIR-Tiefpasses mit 31 Filterkoeffizienten und einer Grenzfrequenz von $f_c=800~\mathrm{Hz}$. Der Filter arbeitet ohne Rückkopplung und dämpft hohe Frequenzanteile. Eigene Darstellung nach \parencite{smith2007introduction}.}
+	\caption{Beispiel eines FIR-Tiefpasses mit 31 Filterkoeffizienten und einer Grenzfrequenz von $f_c=800~\mathrm{Hz}$. Der Filter arbeitet ohne Rückkopplung und dämpft hohe Frequenzanteile. Darstellung nach \parencite{smith2007introduction}.}
 	\label{fig:fir-beispiel}
 \end{figure}
 Im Unterschied zum Biquad hängt $y[n]$ nicht von früheren Ausgangswerten ab. Der Aufwand wächst mit der Zahl der Taps. Pro Ausgangssample beträgt die asymptotische Komplexität daher
@@ -120,7 +120,7 @@ Abbildung~\ref{fig:zeit-frequenz-vergleich} vergleicht Zeitbereich und Frequenzb
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/zeit_frequenz.png}
-	\caption{Vergleich von Zeitbereich und Frequenzbereich. Oben ist ein 440-Hz-Einzelton dargestellt, der im Spektrum einen dominanten Frequenzanteil bei 440 Hz erzeugt. Unten ist ein Mischsignal aus 440 Hz und 1000 Hz dargestellt; beide Anteile erscheinen im Frequenzbereich als separate Peaks. Eigene Darstellung auf Grundlage der DFT/FFT-Spektralanalyse \parencite[S.~102]{tan2018digital}.}
+	\caption{Vergleich von Zeitbereich und Frequenzbereich. Oben ist ein 440-Hz-Einzelton dargestellt, der im Spektrum einen dominanten Frequenzanteil bei 440 Hz erzeugt. Unten ist ein Mischsignal aus 440 Hz und 1000 Hz dargestellt. Beide Anteile erscheinen im Frequenzbereich als separate Peaks. Darstellung auf Grundlage der DFT/FFT-Spektralanalyse \parencite[S.~102]{tan2018digital}.}
 	\label{fig:zeit-frequenz-vergleich}
 \end{figure}
 \noindent Diese Frequenzauflösung ergibt sich aus Abtastfrequenz und Transformationslänge \parencite[S.~101, 103]{tan2018digital}. Eine größere Transformationslänge $N$ verbessert folglich die Frequenzauflösung, erhöht jedoch den Rechenaufwand.
