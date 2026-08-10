@@ -47,12 +47,12 @@ Codegenerierungsstrategie abhängt. Die in dieser Arbeit berücksichtigte Vergle
 Für einen fairen Vergleich folgen beide Implementierungen demselben algorithmischen Ablauf und werden über eine gemeinsame Schnittstelle in die Benchmark-Infrastruktur eingebunden. Auf explizit programmierte Single-Instruction-Multiple-Data-Intrinsics (SIMD-Intrinsics) wird verzichtet.
 Die automatische Vektorisierung des Compilers bleibt für beide Varianten aktiv.
 
-Die vorliegende Arbeit untersucht systematisch, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. Betrachtet werden eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Der Schwerpunkt liegt auf reproduzierbaren Mikrobenchmarks, nicht auf einer vollständigen Audioanwendung.
+In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Der Schwerpunkt liegt auf reproduzierbaren Mikrobenchmarks, nicht auf einer vollständigen Audioanwendung.
 
 
 \section{Forschungsfrage und Zielsetzung}
-Ziel dieser Arbeit ist es, die Eignung der domänenspezifischen Sprache FAUST für die Implementierung ausgewählter Echtzeit-DSP-Bausteine zu untersuchen. Dazu werden FAUST-generierter C++-Code und eine manuell implementierte C++-Referenz und reproduzierbaren Vergleiche mit unterschiedlichen Datenabhängigkeiten -und Skalierungseigenschaften erzeugt. Neben der Laufzeit werden Speicherverbrauch und Binärgröße betrachtet.
-Ergänzend werden Codelänge und Implementierungskomplexität analysiert.
+In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Der Schwerpunkt liegt auf reproduzierbaren Mikrobenchmarks, nicht auf einer vollständigen Audioanwendung.
+Reproduzierbaren Vergleiche mit unterschiedlichen Datenabhängigkeiten -und Skalierungseigenschaften sind die Anforderungen. Neben der Laufzeit werden Speicherverbrauch und Binärgröße betrachtet. Ergänzend werden Codelänge und Implementierungskomplexität analysiert.
 
 Die übergeordnete Forschungsfrage lautet:
 \begin{quote}
@@ -77,7 +77,7 @@ Zur Beantwortung dieser Forschungsfrage werden folgende Teilfragen untersucht:
 
 
 \section{Aufbau der Arbeit}
-Die vorliegende Bachelorarbeit ist in acht Kapitel gegliedert. Sie umfasst die theoretischen Grundlagen, die Beschreibung von FAUST, das Versuchsdesign, die Implementierung der Benchmark-Kerne, die systematische Evaluation sowie die Einordnung der Ergebnisse.
+Die Bachelorarbeit ist in acht Kapitel gegliedert. Sie umfasst die theoretischen Grundlagen, die Beschreibung von FAUST, das Versuchsdesign, die Implementierung der Benchmark-Kerne, die Evaluation sowie die Einordnung der Ergebnisse.
 
 Nach dieser Einleitung vermittelt Kapitel~2 die für die Arbeit relevanten Grundlagen der digitalen Signalverarbeitung. Dazu gehören Audio-DSP, Verstärkungsstufen, rekursive Filter und FIR-Filter, die Fast-Fourier-Transformation sowie Anforderungen an Echtzeitverarbeitung.
 
