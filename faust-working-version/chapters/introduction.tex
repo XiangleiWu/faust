@@ -47,12 +47,8 @@ Codegenerierungsstrategie abhängt. Die in dieser Arbeit berücksichtigte Vergle
 Für einen fairen Vergleich folgen beide Implementierungen demselben algorithmischen Ablauf und werden über eine gemeinsame Schnittstelle in die Benchmark-Infrastruktur eingebunden. Auf explizit programmierte Single-Instruction-Multiple-Data-Intrinsics (SIMD-Intrinsics) wird verzichtet.
 Die automatische Vektorisierung des Compilers bleibt für beide Varianten aktiv.
 
-In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Der Schwerpunkt liegt auf reproduzierbaren Mikrobenchmarks, nicht auf einer vollständigen Audioanwendung.
-
-
 \section{Forschungsfrage und Zielsetzung}
-In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Der Schwerpunkt liegt auf reproduzierbaren Mikrobenchmarks, nicht auf einer vollständigen Audioanwendung.
-Reproduzierbaren Vergleiche mit unterschiedlichen Datenabhängigkeiten -und Skalierungseigenschaften sind die Anforderungen. Neben der Laufzeit werden Speicherverbrauch und Binärgröße betrachtet. Ergänzend werden Codelänge und Implementierungskomplexität analysiert.
+In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Reproduzierbaren Vergleiche mit unterschiedlichen Datenabhängigkeiten -und Skalierungseigenschaften sind die Anforderungen. Neben der Laufzeit werden Speicherverbrauch und Binärgröße betrachtet. Ergänzend werden Codelänge und Implementierungskomplexität analysiert.
 
 Die übergeordnete Forschungsfrage lautet:
 \begin{quote}

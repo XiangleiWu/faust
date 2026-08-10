@@ -1,8 +1,280 @@
 \chapter{Versuchsdesign und Benchmark-Methodik}
+\label{chap:versuchsdesign}
+ 
+Dieses Kapitel beschreibt den Aufbau der Messungen. Es legt fest, welche Bausteine untersucht werden, mit welchen Werkzeugen gemessen wird, auf welcher Hardware die Messungen laufen, welche Compilerkonfigurationen verwendet werden und welche Testdaten zum Einsatz kommen. Ziel ist es beim Vergleich zwischen Faust-generiertem und manuell implementiertem C++-Code den Fairness und Reproduzierbarkeit zu zeigen.
+ 
  
 \section{Definition der untersuchten DSP-Bausteine}
- warum folgende Bausteine;
- Code;
+Untersucht werden vier Arten von Bausteinen. Sie sind bewusst so gewählt,
+dass sie unterschiedliche Datenabhängigkeiten aufweisen oder unterschiedliche Skalierungseigenschaften besitzen. 
+
+Die Datenabhängigkeit beschreibt, ob ein Ausgangssample von einem zuvor berechneten Ausgangssample abhängt. Diese Eigenschaft entscheidet darüber, ob der Compiler eine Schleife automatisch vektorisieren kann. Nämlich anhand der Vektorisierung ermöglicht es dieselbe Rechenoperation gleichzeitig auf mehrere aufeinanderfolgende Samples anzuwenden. Das setzt voraus, dass diese Samples unabhängig voneinander berechnet werden können. Die Werte müssen
+dann nacheinander berechnet werden, und eine gleichzeitige Verarbeitung ist
+nicht möglich. Abschnitt~2.4.1 beschreibt diesen Zusammenhang; die
+Abschnitte~2.2.2 und~2.2.3 wenden ihn auf rekursive und nichtrekursive
+Filter an. Der Einfluss der automatischen Vektorisierung ist zugleich eine
+der Teilfragen aus Abschnitt~1.2. 
+ 
+Die Skalierungseigenschaft beschreibt, wie der Rechenaufwand mit einem
+Parameter wächst. Folgende Parameter wurden untersucht: die Blockgröße,
+die Filterlänge und die Transformationslänge.
+
+Auf dieser Grundlage werden fünf Bausteine untersucht.
+Tabelle~\ref{tab:bausteine} fasst sie zusammen. Sie decken den Bereich von
+vollständiger Datenparallelität bis zu vollständiger Rückkopplung ab.
+ 
+\begin{table}[htb]
+	\centering
+	\caption{Untersuchte DSP-Bausteine und ihre Eigenschaften}
+	\label{tab:bausteine}
+	\begin{tabular}{llll}
+		\hline
+		Baustein & Datenabhängigkeit & Zustand & Variierter Parameter \\
+		\hline
+		Verstärkungsstufe & keine & keiner & Blockgröße 64--1024 \\
+		Akkumulator & Rückkopplung (1 Sample) & 1 Wert & Blockgröße 64--1024 \\
+		Biquad-Filter & Rückkopplung (2 Samples) & 4 Werte & Blockgröße 64--1024 \\
+		FIR-Filter & nur vorwärts & $L$ Werte & Filterlänge $L \in \{32, 64, 256\}$ \\
+		FFT & strukturell ausgerollt & $N$ Werte & Länge $N \in \{64, 128, 256\}$ \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{description}
+	\item[Verstärkungsstufe.] Jedes Sample wird mit einem konstanten Faktor
+	multipliziert. Zwischen den Samples besteht keine Abhängigkeit, der
+	Baustein ist deshalb der einfachste Fall für eine automatische
+	Vektorisierung. Er dient als untere Schranke des Vergleiches. Ein Unterschied hier liege dann nicht an dem Algorithmus sondern an der Codeerzeugung.
+	
+	\item[Biquad-Filter.] Ein rekursives Filter zweiter Ordnung in
+	Direct-Form~I. Jedes Ausgangssample hängt von zwei vorherigen
+	Ausgangssamples ab. Diese Datenabhängigkeit verhindert eine
+	Vektorisierung über die Zeitachse und stellt damit das Gegenstück zur
+	Verstärkungsstufe dar.
+	
+	\item[Akkumulator.] Die Vorschrift $y[n] = x[n] + y[n-1]$ isoliert die
+	Kosten einer Rückkopplung ohne Filterkoeffizienten. Der Baustein
+	beantwortet die Frage, wie teuer der Feedback-Pfad allein ist, getrennt
+	von der Arithmetik des Biquad-Filters.
+	
+	\item[FIR-Filter.] Eine Faltung mit $32$, $64$ und $256$ Koeffizienten. Die
+	Koeffizienten bilden eine normierte Rampe,
+	$c_k = \frac{2(k+1)}{N(N+1)}$, und sind in beiden Implementierungen
+	identisch. In jeden drei Filterlängen lässt sich beobachten, wie sich
+	der Unterschied mit steigendem Rechenaufwand entwickelt.
+	
+	\item[FFT.] Eine gleitende komplexe $N$-Punkt-FFT für
+	$N \in \{64, 128, 256\}$. Bei jedem Sample wird die FFT über die letzten
+	$N$ Samples berechnet. Der Baustein hat einen Eingang und $2N$ Ausgänge,
+	die als $[\mathrm{Re}_0, \mathrm{Im}_0, \mathrm{Re}_1, \mathrm{Im}_1,
+	\dots]$ verschränkt ausgegeben werden.
+\end{description}
+ 
+Tabelle~\ref{tab:bausteine} stellt die Faust-Beschreibung und die
+C++-Referenz gegenueber.
+
+Die ersten vier Bausteine werden mit den Blockgrößen 64, 128, 256, 512 und
+1024 Samples gemessen. Diese Größen entsprechen üblichen Puffergrößen in
+Audioanwendungen. Die FFT bildet eine Ausnahme. Bei ihr ist die Blockgröße an
+die Transformationslänge gebunden, weshalb nur die drei Längen 64, 128 und
+256 gemessen werden. Der Grund für diese Begrenzung wird in
+Abschnitt~\ref{subsec:fft} erläutert.
+
+Der Akkumulator ist gegenüber der Aufzählung in Abschnitt~1.2 hinzugekommen.
+Er wurde ergänzt, weil der Biquad-Filter Rückkopplung und
+Koeffizientenrechnung miteinander vermischt. Der Akkumulator trennt beides
+und misst die Rückkopplung allein.
+
+\subsection{Verstärkungsstufe}
+
+Die Verstärkungsstufe ist der einfachste Fall. Sie benötigt pro Sample genau
+eine Multiplikation. Es gibt keinen Zustand und keine Abhängigkeit zwischen
+den Samples. Jedes Ausgangssample kann unabhängig berechnet werden. Nach
+Abschnitt~2.2.1 besitzt der Baustein damit das höchste
+Vektorisierungspotenzial. Er dient als oberer Referenzfall.
+
+\begin{program}
+	\caption{Faust-Beschreibung der Verstärkungsstufe}
+	\label{prog:gain}
+	\begin{CCode}
+		process = *(hslider("gain", 0.5, 0, 2, 0.01));
+	\end{CCode}
+\end{program}
+
+Die C++-Referenz multipliziert jedes Sample in einer Schleife mit einem
+Faktor desselben Werts. Beide Implementierungen berechnen damit dasselbe
+Ergebnis.
+
+Die Wahl des Faktors ist nicht beliebig. Ein Faktor von 1 wäre das neutrale
+Element der Multiplikation. Der Compiler erkennt das und entfernt die
+Rechnung vollständig; die Schleife wird dann zu einer reinen Kopie. Eine
+Prüfung des erzeugten Assemblercodes bestätigt dies: Bei einem Faktor von 1
+enthält der Verarbeitungsteil ab der Optimierungsstufe \texttt{-O1} keinen
+einzigen Multiplikationsbefehl mehr, und zwar bei beiden Implementierungen
+gleichermaßen. Der Baustein würde in diesem Fall nicht die Verstärkung
+messen, sondern den Speicherdurchsatz. Deshalb wird durchgehend ein Faktor
+von 0{,}5 verwendet. Die Multiplikation bleibt dadurch im erzeugten Code
+erhalten.
+% OFFEN: Diese Beschreibung setzt voraus, dass der Faktor in dsp/gain.dsp,
+% in src/native/gain_native.h UND in evaluation/reference_numpy.py auf 0.5
+% geaendert und anschliessend neu gemessen wurde. Ohne die Aenderung in der
+% NumPy-Referenz schlaegt der Genauigkeitstest fehl.
+
+
+\subsection{Akkumulator}
+
+Der Akkumulator bildet die Summe aller bisherigen Eingangswerte. Für ein
+Eingangssignal $x[n]$ gilt
+
+\begin{equation}
+	y[n] = x[n] + y[n-1].
+\end{equation}
+
+Der Baustein besitzt eine Rückkopplung über genau ein Sample. Er enthält
+keine Filterkoeffizienten und keine weitere Logik. Damit isoliert er die
+reinen Kosten einer Datenabhängigkeit. Er dient als unterer Referenzfall für
+rekursive Strukturen und als Vergleichspunkt für den Biquad-Filter. In Faust
+entspricht ihm der rekursive Kompositionsoperator aus Abschnitt~3.3.
+
+\begin{program}
+	\caption{Faust-Beschreibung des Akkumulators}
+	\label{prog:accum}
+	\begin{CCode}
+		process = + ~ _;
+	\end{CCode}
+\end{program}
+
+
+\subsection{Biquad-Filter}
+
+Der Biquad-Filter setzt die Differenzengleichung~(2.11) aus
+Abschnitt~2.2.2 um. Verwendet werden die Koeffizienten $b_0 = 1$,
+$b_1 = b_2 = 0$, $a_1 = -1{,}5$ und $a_2 = 0{,}6$. Der Vorwärtszweig ist
+damit auf einen einzelnen Faktor reduziert. Der Baustein misst deshalb
+ausschließlich die Kosten der Rückkopplung über zwei Samples. Die Pole des
+Filters liegen bei einem Betrag von etwa $0{,}77$ und damit innerhalb des
+Einheitskreises. Der Filter ist somit stabil, und der Zustand bleibt über
+beliebig viele Blöcke endlich.
+
+\begin{program}
+	\caption{Faust-Beschreibung des Biquad-Filters}
+	\label{prog:biquad}
+	\begin{CCode}
+		import("stdfaust.lib");
+		process = fi.tf2(1.0, 0.0, 0.0, -1.5, 0.6);
+	\end{CCode}
+\end{program}
+
+Die C++-Referenz implementiert dieselbe Gleichung in Direktform~I. Sie
+speichert die beiden vergangenen Eingangswerte und die beiden vergangenen
+Ausgangswerte als Zustand.
+
+
+\subsection{FIR-Filter}
+
+Der FIR-Filter besitzt keine Rückkopplung. Jedes Ausgangssample hängt nur von
+aktuellen und vergangenen Eingangswerten ab, wie in Gleichung~(2.12)
+beschrieben. Der Aufwand pro Ausgangssample wächst linear mit der
+Filterlänge. Die Filterlänge ist deshalb der interessanteste
+Skalierungsparameter der Arbeit.
+
+Untersucht werden drei Filterlängen: 32, 64 und 256 Koeffizienten. Alle drei
+Längen sind Zweierpotenzen. Diese Einschränkung folgt aus der eigenen
+C++-Referenz. Sie speichert die vergangenen Eingangswerte in einem
+Ringpuffer. Der Zugriff auf einen zurückliegenden Wert erfordert eine
+Umrechnung des Index auf den gültigen Bereich. Bei einer Zweierpotenz genügt
+dafür eine bitweise Und-Verknüpfung mit $L-1$. Andernfalls wäre eine
+Divisionsrestoperation nötig, die deutlich teurer ist. Die Implementierung
+prüft diese Bedingung zur Übersetzungszeit. Abschnitt~5.1 zeigt den
+zugehörigen Quelltext.
+
+Als Koeffizienten dient eine normierte Rampe:
+
+\begin{equation}
+	b_k = \frac{2\,(k+1)}{L\,(L+1)}, \qquad k = 0, \dots, L-1 .
+\end{equation}
+
+Die Summe aller Koeffizienten beträgt genau 1. Der Filter besitzt damit bei
+Gleichanteil eine Verstärkung von 1. Die Koeffizienten sind für alle Längen
+nach derselben Formel gebildet. Dadurch bleiben die Ergebnisse zwischen den
+drei Filterlängen vergleichbar.
+
+\begin{program}
+	\caption{Faust-Beschreibung des FIR-Filters (hier mit $L = 64$)}
+	\label{prog:fir}
+	\begin{CCode}
+		import("stdfaust.lib");
+		N = 64;
+		process = fi.fir(par(i, N, 2.0*(i+1)/(N*(N+1))));
+	\end{CCode}
+\end{program}
+
+
+\subsection{Fast-Fourier-Transformation}
+\label{subsec:fft}
+
+Die FFT unterscheidet sich strukturell von den übrigen Bausteinen. Ihre
+Faust-Beschreibung besteht aus zwei Teilen, die
+Abbildung~\ref{fig:fftfluss} darstellt.
+
+\begin{program}
+	\caption{Faust-Beschreibung der FFT (hier mit $N = 64$)}
+	\label{prog:fft}
+	\begin{CCode}
+		import("stdfaust.lib");
+		N = 64;
+		process = an.rtocv(N) : an.fft(N);
+	\end{CCode}
+\end{program}
+
+Der erste Teil, \texttt{an.rtocv(N)}, wandelt ein reelles Signal in einen
+komplexen Vektor um. Dazu wird das Eingangssignal über eine
+Verzögerungsleitung mit $N$ Abgriffen geführt. Die $N$ zuletzt eingetroffenen
+Samples liegen dadurch gleichzeitig vor. Jeder Abgriff wird zu einem
+komplexen Wert mit dem Sample als Realteil und dem Imaginärteil null. Die
+Reihenfolge beginnt beim neuesten Sample.
+
+Der zweite Teil, \texttt{an.fft(N)}, transformiert diese $N$ komplexen Werte
+in $N$ Spektralwerte. Der Baustein besitzt damit einen Eingang und $2N$
+Ausgänge. Die Ausgänge enthalten abwechselnd Real- und Imaginärteil eines
+Koeffizienten.
+
+\begin{figure}[htb]
+	\centering
+	\begin{tikzpicture}[
+		node distance=6mm,
+		box/.style={draw, rounded corners=2pt, minimum height=8mm, align=center,
+			font=\footnotesize, inner sep=2mm},
+		ar/.style={-latex}
+		]
+		\node[box, minimum width=20mm] (tap) {Verzögerungs-\\leitung, $N$ Abgriffe};
+		\node[box, minimum width=22mm, right=10mm of tap] (rtocv)
+		{\texttt{an.rtocv(N)}\\$N$ komplexe Werte};
+		\node[box, minimum width=22mm, right=10mm of rtocv] (fft)
+		{\texttt{an.fft(N)}\\$\log_2 N$ Stufen};
+		\node[right=10mm of fft, font=\footnotesize, align=center] (out)
+		{$2N$ Ausgänge\\$\mathrm{Re}(X_0), \mathrm{Im}(X_0), \dots$};
+		\node[left=8mm of tap, font=\footnotesize] (in) {$x[n]$};
+		
+		\draw[ar] (in) -- (tap);
+		\draw[ar] (tap) -- (rtocv);
+		\draw[ar] (rtocv) -- (fft);
+		\draw[ar] (fft) -- (out);
+		
+		\node[below=7mm of rtocv, font=\footnotesize, align=center, text width=75mm]
+		{Der gesamte Ablauf wird für \emph{jedes} Sample erneut ausgeführt.\\
+			Ein Block von $N$ Samples erfordert daher $N$ Transformationen.};
+	\end{tikzpicture}
+	\caption{Signalfluss der Faust-FFT. Eigene Darstellung.}
+	\label{fig:fftfluss}
+\end{figure}
+
+Bei jedem Sample wird eine vollständige $N$-Punkt-Transformation über die
+letzten $N$ Samples berechnet. Es handelt sich also um eine gleitende
+Fenster-FFT. Ein Block von $N$ Samples erfordert damit $N$ vollständige
+Transformationen. Diese Eigenschaft ist bei der Interpretation der
+Laufzeitwerte in Kapitel~6 zu berücksichtigen.
+
 \section{Benchmark-Tools und Messgrößen}
  Wie oft etwas durchgelaufen wurde und womit;
  
