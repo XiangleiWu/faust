@@ -1,74 +1,37 @@
 \chapter{Versuchsdesign und Benchmark-Methodik}
 \label{chap:versuchsdesign}
  
-Dieses Kapitel beschreibt den Aufbau der Messungen. Es legt fest, welche Bausteine untersucht werden, mit welchen Werkzeugen gemessen wird, auf welcher Hardware die Messungen laufen, welche Compilerkonfigurationen verwendet werden und welche Testdaten zum Einsatz kommen. Ziel ist es beim Vergleich zwischen Faust-generiertem und manuell implementiertem C++-Code den Fairness und Reproduzierbarkeit zu zeigen.
+Dieses Kapitel beschreibt, wie der Vergleich zwischen Faust-generiertem und manuell implementiertem C++-Code durchgeführt wird. Es legt fest, welche DSP-Bausteine untersucht werden, mit wlechen Werkzeugen gemessen wird, auf welcher Plattform die Messungen laufen, welche Compilerkonfigurationen verwendet werden und welche Testdaten zum Einsatz kommen. Der Versuchsaufbau soll wiederholbar und für beide Implementierungen dieselben Bedingungen herstellen. Die konkrete Umsetzung im Quelltext beschreibt Kapitel~\ref{cha:implementierung}, die Messergebnisse folgen in Kapitel~\ref{cha:evaluation}.
  
  
 \section{Definition der untersuchten DSP-Bausteine}
-Untersucht werden vier Arten von Bausteinen. Sie sind bewusst so gewählt,
-dass sie unterschiedliche Datenabhängigkeiten aufweisen oder unterschiedliche Skalierungseigenschaften besitzen. 
 
-Die Datenabhängigkeit beschreibt, ob ein Ausgangssample von einem zuvor berechneten Ausgangssample abhängt. Diese Eigenschaft entscheidet darüber, ob der Compiler eine Schleife automatisch vektorisieren kann. Nämlich anhand der Vektorisierung ermöglicht es dieselbe Rechenoperation gleichzeitig auf mehrere aufeinanderfolgende Samples anzuwenden. Das setzt voraus, dass diese Samples unabhängig voneinander berechnet werden können. Die Werte müssen
-dann nacheinander berechnet werden, und eine gleichzeitige Verarbeitung ist
-nicht möglich. Abschnitt~2.4.1 beschreibt diesen Zusammenhang; die
-Abschnitte~2.2.2 und~2.2.3 wenden ihn auf rekursive und nichtrekursive
-Filter an. Der Einfluss der automatischen Vektorisierung ist zugleich eine
-der Teilfragen aus Abschnitt~1.2. 
- 
-Die Skalierungseigenschaft beschreibt, wie der Rechenaufwand mit einem
-Parameter wächst. Folgende Parameter wurden untersucht: die Blockgröße,
-die Filterlänge und die Transformationslänge.
+Für die Auswahl der Bausteine werden drei Kriterien herbeigezogen.
 
-Auf dieser Grundlage werden fünf Bausteine untersucht.
-Tabelle~\ref{tab:bausteine} fasst sie zusammen. Sie decken den Bereich von
-vollständiger Datenparallelität bis zu vollständiger Rückkopplung ab.
+\begin{enumerate}
+	\item \textbf{Unterschiedliche Datenabhängigkeiten.} Die Bausteine sollen sich darin unterscheiden, ob und über wie viele Samples ein Ergebnis von früheren Ergebnissen abhängt. Gerade diese Abhängigkeiten bestimmen die Optimierungsmöglichkeiten des Compilers \parencite{scaringella:hal-02158949}.
+	\item \textbf{Ein Skalierungsparameter je Baustein.} Jeder Baustein soll einen Parameter besitzen, über den sich der Rechenaufwand gezielt verändern lässt. Etwa die Blockgröße, die Filterlänge oder die Transformationslänge. Erst dadurch lässt sich beobachten, wie sich der Unterschied zwischen beiden Ansätzen mit dem Aufwand verändert.
+	\item \textbf{Nachweisbare Gleichwertigkeit.} Jeder Baustein muss klein genug sein, dass sich zeigen lässt, dass beide Implementierungen dasselbe berechnen. 
+\end{enumerate}
  
-\begin{table}[htb]
+\begin{table}[h]
 	\centering
+	\small
 	\caption{Untersuchte DSP-Bausteine und ihre Eigenschaften}
 	\label{tab:bausteine}
 	\begin{tabular}{llll}
 		\hline
-		Baustein & Datenabhängigkeit & Zustand & Variierter Parameter \\
+		Baustein & Aufwand & Datenabhängigkeit & Skalierung \\
 		\hline
-		Verstärkungsstufe & keine & keiner & Blockgröße 64--1024 \\
-		Akkumulator & Rückkopplung (1 Sample) & 1 Wert & Blockgröße 64--1024 \\
-		Biquad-Filter & Rückkopplung (2 Samples) & 4 Werte & Blockgröße 64--1024 \\
-		FIR-Filter & nur vorwärts & $L$ Werte & Filterlänge $L \in \{32, 64, 256\}$ \\
-		FFT & strukturell ausgerollt & $N$ Werte & Länge $N \in \{64, 128, 256\}$ \\
+		Gain & 1 Multiplikation & keine & Blockgröße 64--1024 \\
+		Akkumulator & 1 Addition & Rückkopplung (1 Sample) & Blockgröße 64--1024 \\
+		Biquad-Filter & 5 Mult., 4 Add. & Rückkopplung (2 Samples) & Blockgröße 64--1024 \\
+		FIR-Filter & $L$ Mult., $L$ Add. & keine & Filterlänge $L \in \{32, 64, 256\}$ \\
+		FFT & $O(N\log_2 N)$ & Butterfly-Graph & FFT-Größe $N \in \{64, 128, 256\}$ \\
 		\hline
 	\end{tabular}
 \end{table}
 
-\begin{description}
-	\item[Verstärkungsstufe.] Jedes Sample wird mit einem konstanten Faktor
-	multipliziert. Zwischen den Samples besteht keine Abhängigkeit, der
-	Baustein ist deshalb der einfachste Fall für eine automatische
-	Vektorisierung. Er dient als untere Schranke des Vergleiches. Ein Unterschied hier liege dann nicht an dem Algorithmus sondern an der Codeerzeugung.
-	
-	\item[Biquad-Filter.] Ein rekursives Filter zweiter Ordnung in
-	Direct-Form~I. Jedes Ausgangssample hängt von zwei vorherigen
-	Ausgangssamples ab. Diese Datenabhängigkeit verhindert eine
-	Vektorisierung über die Zeitachse und stellt damit das Gegenstück zur
-	Verstärkungsstufe dar.
-	
-	\item[Akkumulator.] Die Vorschrift $y[n] = x[n] + y[n-1]$ isoliert die
-	Kosten einer Rückkopplung ohne Filterkoeffizienten. Der Baustein
-	beantwortet die Frage, wie teuer der Feedback-Pfad allein ist, getrennt
-	von der Arithmetik des Biquad-Filters.
-	
-	\item[FIR-Filter.] Eine Faltung mit $32$, $64$ und $256$ Koeffizienten. Die
-	Koeffizienten bilden eine normierte Rampe,
-	$c_k = \frac{2(k+1)}{N(N+1)}$, und sind in beiden Implementierungen
-	identisch. In jeden drei Filterlängen lässt sich beobachten, wie sich
-	der Unterschied mit steigendem Rechenaufwand entwickelt.
-	
-	\item[FFT.] Eine gleitende komplexe $N$-Punkt-FFT für
-	$N \in \{64, 128, 256\}$. Bei jedem Sample wird die FFT über die letzten
-	$N$ Samples berechnet. Der Baustein hat einen Eingang und $2N$ Ausgänge,
-	die als $[\mathrm{Re}_0, \mathrm{Im}_0, \mathrm{Re}_1, \mathrm{Im}_1,
-	\dots]$ verschränkt ausgegeben werden.
-\end{description}
  
 Tabelle~\ref{tab:bausteine} stellt die Faust-Beschreibung und die
 C++-Referenz gegenueber.
@@ -81,210 +44,467 @@ die Transformationslänge gebunden, weshalb nur die drei Längen 64, 128 und
 Abschnitt~\ref{subsec:fft} erläutert.
 
 Der Akkumulator ist gegenüber der Aufzählung in Abschnitt~1.2 hinzugekommen.
-Er wurde ergänzt, weil der Biquad-Filter Rückkopplung und
+Er wird ergänzt, weil der Biquad-Filter Rückkopplung und
 Koeffizientenrechnung miteinander vermischt. Der Akkumulator trennt beides
 und misst die Rückkopplung allein.
 
-\subsection{Verstärkungsstufe}
+\subsubsection*{Verstärkungsstufe (Gain)}
 
-Die Verstärkungsstufe ist der einfachste Fall. Sie benötigt pro Sample genau
-eine Multiplikation. Es gibt keinen Zustand und keine Abhängigkeit zwischen
-den Samples. Jedes Ausgangssample kann unabhängig berechnet werden. Nach
-Abschnitt~2.2.1 besitzt der Baustein damit das höchste
-Vektorisierungspotenzial. Er dient als oberer Referenzfall.
+Die Verstärkungsstufe skaliert jedes Sample mit einem konstante Faktor $ g = 0{,}5$ gemäß Gleichung ~\ref{eq:gain}. In Faust wird sie als Multiplikationen mit einem Bedienelement beschrieben. Der Vorgabewert beträgt $0{,}5$. Es gibt keinen Zustand und keine Datenabhängigkeit zwischen
+den Samples. Jedes Ausgangssample kann unabhängig berechnet werden und damit sind die Daten vollständig parallel.
 
-\begin{program}
-	\caption{Faust-Beschreibung der Verstärkungsstufe}
-	\label{prog:gain}
-	\begin{CCode}
-		process = *(hslider("gain", 0.5, 0, 2, 0.01));
-	\end{CCode}
-\end{program}
+Der Baustein liefert erstens den einfachsten Fall für den Laufzeitvergleich. Bei einer einzelnen Mulitplikation pro Sample sollten beide Implementierungen praktisch denselben Maschinencode erzeugen. Zweitens dient er als Bezugspunkt für Auflösungsgrenze des Messaufbaus (Abschnitt~\ref{sec:auswertung}). 
+Zeigt sich hier ein Unterschied, so ist das zunächst ein Befund über die Messung und erst danach einer über Faust. Da die Operation zudem vollständig vektorisierbar ist, eignet sie sich als Überprüfung, ob die Codegenerierung die automatische Vektorisierung des C++-Compilers behindert.
 
-Die C++-Referenz multipliziert jedes Sample in einer Schleife mit einem
-Faktor desselben Werts. Beide Implementierungen berechnen damit dasselbe
-Ergebnis.
+Die Aussagekraft ist begrenzt. Ein Baustein mit einer Operation je Sample ist nicht rechen, sondern speicherzugriffsbegrenzt. Gemessen wird hier vor allem, wie schnell Werte geladen und geschrieben werden und wie gut gerechnet wird. Zur Beantwortung der Qualität der Codegenerierung ist der Verstärkungsstufe der schwächste Baustein.  
 
-Die Wahl des Faktors ist nicht beliebig. Ein Faktor von 1 wäre das neutrale
-Element der Multiplikation. Der Compiler erkennt das und entfernt die
-Rechnung vollständig; die Schleife wird dann zu einer reinen Kopie. Eine
-Prüfung des erzeugten Assemblercodes bestätigt dies: Bei einem Faktor von 1
-enthält der Verarbeitungsteil ab der Optimierungsstufe \texttt{-O1} keinen
-einzigen Multiplikationsbefehl mehr, und zwar bei beiden Implementierungen
-gleichermaßen. Der Baustein würde in diesem Fall nicht die Verstärkung
-messen, sondern den Speicherdurchsatz. Deshalb wird durchgehend ein Faktor
-von 0{,}5 verwendet. Die Multiplikation bleibt dadurch im erzeugten Code
-erhalten.
-% OFFEN: Diese Beschreibung setzt voraus, dass der Faktor in dsp/gain.dsp,
-% in src/native/gain_native.h UND in evaluation/reference_numpy.py auf 0.5
-% geaendert und anschliessend neu gemessen wurde. Ohne die Aenderung in der
-% NumPy-Referenz schlaegt der Genauigkeitstest fehl.
+\subsubsection*{Akkumulator (Accum)}
 
-
-\subsection{Akkumulator}
-
-Der Akkumulator bildet die Summe aller bisherigen Eingangswerte. Für ein
-Eingangssignal $x[n]$ gilt
-
+Der Akkumulator berechnet
 \begin{equation}
 	y[n] = x[n] + y[n-1].
+	\label{eq:accum}
 \end{equation}
+Jedes Ausgangssample ist die Summe aller bisherigen Eingangssamples. In Faust
+entspricht das dem Rekursionsoperator aus
+Tabelle~\ref{tab:faust-operatoren} in seiner kürzesten Form, also einer
+Addition mit Rückführung über ein Sample.
 
-Der Baustein besitzt eine Rückkopplung über genau ein Sample. Er enthält
-keine Filterkoeffizienten und keine weitere Logik. Damit isoliert er die
-reinen Kosten einer Datenabhängigkeit. Er dient als unterer Referenzfall für
-rekursive Strukturen und als Vergleichspunkt für den Biquad-Filter. In Faust
-entspricht ihm der rekursive Kompositionsoperator aus Abschnitt~3.3.
+Der Baustein enthält weder Filterkoeffizienten noch weitere Logik und isoliert
+damit ausschließlich die Kosten der Rückkopplung. Er beantwortet keine
+eigenständige Frage, sondern trennt zwei mögliche Erklärungen.
+Zeigt sich beim Biquad-Filter ein Laufzeitunterschied zwischen Faust und C++,
+so lässt sich am Akkumulator prüfen, ob dieser aus der Rückkopplung selbst
+stammt oder aus der Art, wie die Koeffizienten verrechnet werden. Ohne diesen
+Vergleichsfall bliebe eine solche Beobachtung unentscheidbar.
 
-\begin{program}
-	\caption{Faust-Beschreibung des Akkumulators}
-	\label{prog:accum}
-	\begin{CCode}
-		process = + ~ _;
-	\end{CCode}
-\end{program}
-
-
-\subsection{Biquad-Filter}
-
-Der Biquad-Filter setzt die Differenzengleichung~(2.11) aus
-Abschnitt~2.2.2 um. Verwendet werden die Koeffizienten $b_0 = 1$,
-$b_1 = b_2 = 0$, $a_1 = -1{,}5$ und $a_2 = 0{,}6$. Der Vorwärtszweig ist
-damit auf einen einzelnen Faktor reduziert. Der Baustein misst deshalb
-ausschließlich die Kosten der Rückkopplung über zwei Samples. Die Pole des
-Filters liegen bei einem Betrag von etwa $0{,}77$ und damit innerhalb des
-Einheitskreises. Der Filter ist somit stabil, und der Zustand bleibt über
-beliebig viele Blöcke endlich.
-
-\begin{program}
-	\caption{Faust-Beschreibung des Biquad-Filters}
-	\label{prog:biquad}
-	\begin{CCode}
-		import("stdfaust.lib");
-		process = fi.tf2(1.0, 0.0, 0.0, -1.5, 0.6);
-	\end{CCode}
-\end{program}
-
-Die C++-Referenz implementiert dieselbe Gleichung in Direktform~I. Sie
-speichert die beiden vergangenen Eingangswerte und die beiden vergangenen
-Ausgangswerte als Zustand.
+Als Audio-Baustein ist der Akkumulator hingegen ohne praktischen Wert. Seine
+Ausgabe wächst unbegrenzt, und der aufsummierte Rundungsfehler nimmt mit der
+Blocklänge zu. Er dient rein als ein Diagnosefall und kein Anwendungsfall.
 
 
-\subsection{FIR-Filter}
+\subsubsection*{Biquad-Filter}
 
-Der FIR-Filter besitzt keine Rückkopplung. Jedes Ausgangssample hängt nur von
-aktuellen und vergangenen Eingangswerten ab, wie in Gleichung~(2.12)
-beschrieben. Der Aufwand pro Ausgangssample wächst linear mit der
-Filterlänge. Die Filterlänge ist deshalb der interessanteste
-Skalierungsparameter der Arbeit.
+Der Biquad-Filter ist ein Tiefpass zweiter Ordnung mit einer Grenzfrequenz von
+$800$~Hz bei einer Abtastfrequenz von $48$~kHz. Er verwendet die
+Koeffizienten $b_0 = b_2 = 0{,}00255054$, $b_1 = 0{,}00510107$,
+$a_1 = -1{,}85214649$ und $a_2 = 0{,}86234863$. Es wird darauf geachtet, dass die Gleichverstärkung 1 beträgt. Beide Implementierungen verwenden dieselben Koeffizienten und
+realisieren dieselbe Übertragungsfunktion nach
+Gleichung~\ref{eq:biquad-diff}. Jedes Ausgangssample hängt von den beiden
+vorherigen Ein- und Ausgangswerten ab. 
 
-Untersucht werden drei Filterlängen: 32, 64 und 256 Koeffizienten. Alle drei
-Längen sind Zweierpotenzen. Diese Einschränkung folgt aus der eigenen
-C++-Referenz. Sie speichert die vergangenen Eingangswerte in einem
-Ringpuffer. Der Zugriff auf einen zurückliegenden Wert erfordert eine
-Umrechnung des Index auf den gültigen Bereich. Bei einer Zweierpotenz genügt
-dafür eine bitweise Und-Verknüpfung mit $L-1$. Andernfalls wäre eine
-Divisionsrestoperation nötig, die deutlich teurer ist. Die Implementierung
-prüft diese Bedingung zur Übersetzungszeit. Abschnitt~5.1 zeigt den
-zugehörigen Quelltext.
+Der Baustein ist der aussagekräftigste der fünf, weil er zu drei Fragen
+zugleich beiträgt. Zur Laufzeit liefert er den Fall, in dem die
+Datenabhängigkeit die Optimierung tatsächlich einschränkt, weil das
+Umordnen von Gleitkommaoperationen die Länge der Abhängigkeitskette verändern
+kann (Abschnitt~\ref{sec:compiler}). Zur numerischen Genauigkeit liefert er
+den einzigen Fall, in dem sich Rundungsfehler über die Rückkopplung
+fortpflanzen statt sich nur zu addieren.
 
-Als Koeffizienten dient eine normierte Rampe:
+Die manuelle Implementierung folgt der Direktform~I. Sie ist die wörtliche Übetragung von Gleichung~\{eq:biquad-diff\}. Jedes Ausgangssample wird unmittelbar aus den beiden vorherigen Eingangs- und den beiden vorherigen Ausgangswerten berechnet. Der Filter speichert deshalb vier Werte.
+
+Faust rechnet in zwei Schritten. Zuerst entsteht aus dem Eingang und zwei zurückgeführten Werten ein Zwischensignal $w$, aus dem anschließend das Ausgangssignal gebildet wird:
 
 \begin{equation}
-	b_k = \frac{2\,(k+1)}{L\,(L+1)}, \qquad k = 0, \dots, L-1 .
+	w[n] = x[n] - a_1 w[n-1] - a_2 w[n-2],
+	\label{eq:biquad-df2-rek}
 \end{equation}
+\begin{equation}
+	y[n] = b_0[n] w[n] + b_1 w[n-1] - b_2 w[n-2].
+	\label{eq:biquad-df2-fir}
+\end{equation}
+Das ist die Direktform~II. Sie speichert zwei Werte weil beide Schritte dieselbe Verzögerungskette benutzen.
 
-Die Summe aller Koeffizienten beträgt genau 1. Der Filter besitzt damit bei
-Gleichanteil eine Verstärkung von 1. Die Koeffizienten sind für alle Längen
-nach derselben Formel gebildet. Dadurch bleiben die Ergebnisse zwischen den
-drei Filterlängen vergleichbar.
+Für Faust ist diese Form die naheliegende. Der Rekursionsoperatur aus Tabelle~\ref{tab:faust-operatoren} beschreibt genau den ersten Schritt, und der zweite Schritt ist ein gewöhnlicher FIR-Filter. Die Bibliotheksfunktion \texttt{fi.tf2} ist deshalb aus diesen beiden Teilen zusammengesetzt. Die Direktform~I ließe sich so nicht ausdrücken. Der Vorwärtszweig läuft über das Eingangs- und der Rückkopplungszweig über das Ausgangssignal. Es wären also zwei getrennte Verzögerungsketten nötig.
 
-\begin{program}
-	\caption{Faust-Beschreibung des FIR-Filters (hier mit $L = 64$)}
-	\label{prog:fir}
-	\begin{CCode}
-		import("stdfaust.lib");
-		N = 64;
-		process = fi.fir(par(i, N, 2.0*(i+1)/(N*(N+1))));
-	\end{CCode}
-\end{program}
+Der Unterschied ist bewusst. Jede Seite verwendet die Formulierung, die für sie die naheliegende ist, denn genau dieser Unterschied gehört zu dem, was der Vergleich sichtbar machen soll. Die Direktform~I speicher je Sample vier Werte um, die Direktform~II nur zwei. Die unterschiedliche Formulierung kann auch zu ein gemessener Laufzeitunterschied herbeiführen und nicht nur von der Codegenerierung. Mit dem vorliegenden Aufbau lassen sich beide Ursachen nicht trennen. Abschnitt~\ref{sec:validiaet} greift das auf.
 
+Dass beide Varianten dennoch dasselbe Ergebnis liefern, wird in Abschnitt~\ref{sec:verifikation} nachgewiesen.
+
+\subsubsection*{FIR-Filter}
+
+Untersucht werden FIR-Filter mit $L \in \{32, 64, 256\}$ Koeffizienten. Die
+Koeffizienten bilden eine normierte Rampe
+\begin{equation}
+	b_k = \frac{2\,(k+1)}{L\,(L+1)}, \qquad k = 0, \dots, L-1,
+	\label{eq:fir-koeff}
+\end{equation}
+deren Summe eins ergibt. In Faust wird der Filter über die
+Bibliotheksfunktion \texttt{fi.fir} mit einer erzeugten Koeffizientenliste
+beschrieben. Jedes Ausgangssample ist die gewichtete Summe der letzten $L$
+Eingangssamples. Eine Rückkopplung gibt es nicht. Die manuelle Implementierung
+speichert die vergangenen Eingangswerte in einem Ringpuffer. Da alle
+Filterlängen Zweierpotenzen sind, wird der Ringpuffer über eine Bitmaske
+adressiert. 
+
+Der Baustein dient zur Beantworten der Frage nach dem Skalierungsverhalten bei. Er
+ist der einzige, bei dem sich der Rechenaufwand unabhängig von der Blockgröße
+verändern lässt, und drei Filterlängen zeigen, ob ein Unterschied zwischen
+beiden Ansätzen mit dem Aufwand wächst, schrumpft oder gleich bleibt. 
+Da die Faltung ohne Rückkopplung auskommt, ist sie zugleich der Fall, an dem sich der
+Nutzen der automatischen Vektorisierung am deutlichsten zeigen sollte.
+Schließlich ist er für die Binärgröße aufschlussreich, weil der
+Faust-Compiler die Faltung vollständig ausrollt und die Codegröße daher mit
+$L$ wachsen dürfte.
 
 \subsection{Fast-Fourier-Transformation}
 \label{subsec:fft}
 
-Die FFT unterscheidet sich strukturell von den übrigen Bausteinen. Ihre
-Faust-Beschreibung besteht aus zwei Teilen, die
-Abbildung~\ref{fig:fftfluss} darstellt.
+Untersucht werden FFTs mit $N \in \{64, 128, 256\}$. Beide Implementierungen
+berechnen eine gleitende Fenster-FFT: Für jedes Eingangssample wird die
+$N$-Punkt-FFT über die letzten $N$ Samples berechnet. Der Baustein besitzt
+einen Eingang und $2N$ Ausgänge, die Real- und Imaginärteil abwechselnd
+ausgeben. 
 
-\begin{program}
-	\caption{Faust-Beschreibung der FFT (hier mit $N = 64$)}
-	\label{prog:fft}
-	\begin{CCode}
-		import("stdfaust.lib");
-		N = 64;
-		process = an.rtocv(N) : an.fft(N);
-	\end{CCode}
-\end{program}
+In Faust wird er über die Bibliotheksfunktionen \texttt{an.rtocv}
+und \texttt{an.fft} beschrieben. Die manuelle Implementierung ist eine iterative
+Radix-2-FFT nach Cooley-Tukey im Zeitbereich. Die
+Bit-Umkehrtabelle und die Twiddle-Faktoren werden einmalig bei der
+Initialisierung berechnet.
 
-Der erste Teil, \texttt{an.rtocv(N)}, wandelt ein reelles Signal in einen
-komplexen Vektor um. Dazu wird das Eingangssignal über eine
-Verzögerungsleitung mit $N$ Abgriffen geführt. Die $N$ zuletzt eingetroffenen
-Samples liegen dadurch gleichzeitig vor. Jeder Abgriff wird zu einem
-komplexen Wert mit dem Sample als Realteil und dem Imaginärteil null. Die
-Reihenfolge beginnt beim neuesten Sample.
+Die FFT ist der einzige Baustein, bei der sein Aufwand nicht linear wächst, und
+ergänzt die Skalierungsfrage. Vor allem aber ist sie der Fall, in dem sich die Codegenerierung am stärksten von gewöhnlichem C++ unterscheidet.
+Der Faust-Compiler rollt die gesamte Butterfly-Struktur aus, während die manuelle Implementierung sie in
+verschachtelten Schleifen durchläuft. Damit ist die FFT der aussagekräftigste
+Baustein für die Fragen nach Binärgröße und Speicherbedarf und zugleich der
+einzige, an dem die Übersetzungsdauer des Faust-Compilers spürbar wird.
 
-Der zweite Teil, \texttt{an.fft(N)}, transformiert diese $N$ komplexen Werte
-in $N$ Spektralwerte. Der Baustein besitzt damit einen Eingang und $2N$
-Ausgänge. Die Ausgänge enthalten abwechselnd Real- und Imaginärteil eines
-Koeffizienten.
+Der Vergleich hat hier zwei Schwächen. Die gleitende Fenster-FFT berechnet für
+jedes einzelne Sample eine vollständige Transformation und ist damit weit
+aufwendiger als die in der Praxis übliche Blockverarbeitung mit
+Fenstervorschub aus Abschnitt~\ref{sec:echtzeit}. Diese Form ergibt sich aus
+der Semantik der verwendeten Faust-Funktion und wurde nicht gewählt, weil sie
+praxisnah wäre. Zudem sind die untersuchten Transformationslängen klein. Die
+Zwischenspeicher der Testplattform fassen alle drei Größen mühelos, sodass
+sich Effekte der Speicherhierarchie nicht zeigen.
 
-\begin{figure}[htb]
-	\centering
-	\begin{tikzpicture}[
-		node distance=6mm,
-		box/.style={draw, rounded corners=2pt, minimum height=8mm, align=center,
-			font=\footnotesize, inner sep=2mm},
-		ar/.style={-latex}
-		]
-		\node[box, minimum width=20mm] (tap) {Verzögerungs-\\leitung, $N$ Abgriffe};
-		\node[box, minimum width=22mm, right=10mm of tap] (rtocv)
-		{\texttt{an.rtocv(N)}\\$N$ komplexe Werte};
-		\node[box, minimum width=22mm, right=10mm of rtocv] (fft)
-		{\texttt{an.fft(N)}\\$\log_2 N$ Stufen};
-		\node[right=10mm of fft, font=\footnotesize, align=center] (out)
-		{$2N$ Ausgänge\\$\mathrm{Re}(X_0), \mathrm{Im}(X_0), \dots$};
-		\node[left=8mm of tap, font=\footnotesize] (in) {$x[n]$};
-		
-		\draw[ar] (in) -- (tap);
-		\draw[ar] (tap) -- (rtocv);
-		\draw[ar] (rtocv) -- (fft);
-		\draw[ar] (fft) -- (out);
-		
-		\node[below=7mm of rtocv, font=\footnotesize, align=center, text width=75mm]
-		{Der gesamte Ablauf wird für \emph{jedes} Sample erneut ausgeführt.\\
-			Ein Block von $N$ Samples erfordert daher $N$ Transformationen.};
-	\end{tikzpicture}
-	\caption{Signalfluss der Faust-FFT. Eigene Darstellung.}
-	\label{fig:fftfluss}
-\end{figure}
+Zwei weitere Festlegungen sind wesentlich. Erstens wird bewusst keine
+Fremdbibliothek verwendet. Eine frühere Fassung des Versuchsaufbaus nutzte
+FFTW. Dieser Vergleich hätte Faust gegen eine handoptimierte Bibliothek mit
+Assembler-Kernen gestellt und nicht gegen manuell geschriebenen C++-Code.
+Zweitens serialisiert Faust das Analysefenster mit dem neuesten Sample
+zuerst. Die manuelle Implementierung und die Referenzimplementierung folgen
+dieser Reihenfolge, weil andernfalls beide Varianten unterschiedliche Spektren
+berechnen würden.
 
-Bei jedem Sample wird eine vollständige $N$-Punkt-Transformation über die
-letzten $N$ Samples berechnet. Es handelt sich also um eine gleitende
-Fenster-FFT. Ein Block von $N$ Samples erfordert damit $N$ vollständige
-Transformationen. Diese Eigenschaft ist bei der Interpretation der
-Laufzeitwerte in Kapitel~6 zu berücksichtigen.
+\subsubsection*{Gemeinsame Festlegungen}
+
+Für alle Bausteine gilt: Es werden keine explizit programmierten
+SIMD-Intrinsics eingesetzt, und die manuellen Implementierungen verwenden
+keine externen DSP-Bibliotheken. Die automatische Vektorisierung des
+C++-Compilers bleibt für beide Varianten aktiv. Damit bleibt sichtbar, was die
+Codegenerierung des Faust-Compilers gegenüber gewöhnlichem C++ bewirkt.
+
+Dieser Abschnitt legt fest, \emph{was} gemessen wird. Die vollständigen
+Quelltexte beider Varianten, also die Faust-Beschreibungen und die manuellen
+C++-Implementierungen, zeigt Abschnitt~\ref{sec:umsetzung}.
+
+\subsubsection*{Grenzen der Auswahl}
+
+Die fünf Bausteine decken nur einen schmalen Ausschnitt dessen ab, was in der
+Audio-Signalverarbeitung vorkommt. Alle sind linear, zeitinvariant und
+arbeiten mit konstanten Koeffizienten.
+Nicht untersucht werden nichtlineare Verarbeitung, zeitvariable Parameter,
+Mehrkanalverarbeitung sowie Bausteine mit großen Verzögerungsspeichern, wie
+sie etwa in Nachhallalgorithmen auftreten. Ebenso wenig untersucht wird eine
+vollständige Signalkette, in der mehrere Bausteine hintereinander laufen. Die Ergebnisse gelten
+deshalb für die beschriebenen Bausteine auf der beschriebenen Plattform. 
+
+Eine zweite Einschränkung betrifft die Vergleichsbasis selbst. Die manuellen
+Implementierungen sind im Rahmen dieser Arbeit entstanden und nicht von
+Personen geschrieben, die auf handoptimierten DSP-Code spezialisiert sind. Ein
+erfahrener Entwickler könnte die C++-Seite an mehreren Stellen weiter
+optimieren. Umgekehrt bleibt auf der Faust-Seite der Vektor-Modus ungenutzt.
+Der Vergleich betrifft daher jeweils die naheliegende Umsetzung beider Wege
+und nicht deren jeweiliges Optimum. Abschnitt~\ref{sec:validitaet} geht darauf
+erneut ein.
 
 \section{Benchmark-Tools und Messgrößen}
- Wie oft etwas durchgelaufen wurde und womit;
- 
+
+\label{sec:tools}
+
+\subsection{Messwerkzeuge}
+
+Die Laufzeitmessung erfolgt ausschließlich mit Google~Benchmark. Die
+Bibliothek ist als Submodul eingebunden und wird gemeinsam mit dem Projekt
+übersetzt. Aus einem einzigen Messlauf werden sowohl die Mittelwerte mit
+Fehlerbalken als auch Median, 95.~Perzentil und Interquartilsabstand
+abgeleitet.
+
+Jeder Baustein wird mit $50$ Wiederholungen gemessen. Die Option
+\texttt{report\_\allowbreak aggregates\_\allowbreak only} wird dabei auf
+\texttt{false} gesetzt. Sie
+sorgt dafür, dass die einzelnen Wiederholungen und nicht nur deren Aggregate
+in die JSON-Ausgabe gelangen. Erst dadurch lassen sich Median, Perzentile und die
+statistischen Tests aus Abschnitt~\ref{sec:auswertung} berechnen. 
+
+Innerhalb der Messschleife verhindern die Hilfsfunktionen \texttt{DoNotOptimize} und
+\texttt{ClobberMemory}, dass der Compiler den Aufruf als toten Code
+entfernt. Die Messprozesse werden mit \texttt{taskset} an einen festen Kern
+gebunden, um Wanderungen zwischen Kernen auszuschließen.
+
+Gemessen wird über die Blockgrößen $N \in \{64, 128, 256, 512, 1024\}$. Für
+die FFT wird je Transformationslänge ein eigenes ausführbares Programm
+erzeugt, weil der Faust-Compiler die FFT je Größe vollständig ausrollt und die
+generierte Klasse damit größenspezifisch ist.
+
+Es existiert ein zweiter, unabhängiger Messstand auf Basis von
+\texttt{std::chrono::steady\_clock}. Er misst jeden einzelnen
+\texttt{compute()}-Aufruf getrennt, wärmt vor jeder Runde beide Codepfade
+vollständig auf und wechselt die Reihenfolge von Faust und C++ rundenweise.
+Dies gilt nur als Gegenprobe.
+
+\subsection{Messgrößen}
+
+Tabelle~\ref{tab:messgroessen} fasst die erhobenen Messgrößen zusammen.
+
+\begin{table}[h]
+	\centering
+	\small
+	\caption{Erhobene Messgrößen und ihre Ermittlung}
+	\label{tab:messgroessen}
+	\begin{tabular}{lll}
+		\hline
+		Messgröße & Ermittlung & Werkzeug \\
+		\hline
+		CPU-Zeit je Block   & Median über 50 Wiederholungen & Google Benchmark \\
+		Streuung            & 95.~Perzentil, Interquartilsabstand & Google Benchmark \\
+		Durchsatz           & verarbeitete Samples je Sekunde & Google Benchmark \\
+		Binärgröße          & gestrippte Größe minus Basislinie & \texttt{strip}, \texttt{stat} \\
+		Zustandsgröße       & \texttt{sizeof} der DSP-Klasse & Probe-Programm \\
+		Speicherbedarf      & maximaler RSS, Heap-Spitze & GNU \texttt{time}, Valgrind \\
+		Genauigkeit         & Fehler gegenüber float64-Referenz & Vergleichsprogramme \\
+		Codelänge           & Codezeilen je Implementierung & Auswertungsskript \\
+		Compile-Zeit        & Laufzeit des Faust-Compilers & Messprogramm \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Die zentrale Messgröße ist die Prozessorzeit pro Audio-Block. Berichtet wird
+der Median statt des arithmetischen Mittels. Das 95.~Perzentil
+beschreibt das Verhalten nahe am ungünstigsten Fall und ist für die
+Echtzeitbedingung aus Abschnitt~\ref{sec:echtzeit} die aussagekräftigere
+Größe. Der Interquartilsabstand beschreibt die Streuung.
+
+Die \emph{Binärgröße} wird nicht als absolute Dateigröße berichtet. Ein
+übersetztes Programm besteht zu über neunzig Prozent aus Startup-Code der
+Standardbibliothek. Gemessen wird deshalb die Differenz zwischen einem
+Probe-Programm, das genau einen Baustein enthält, und einer Basislinie mit
+leerer \texttt{main}-Funktion. Beide werden vorher gestrippt. Für die
+FIR-Filter existiert je Filterlänge ein eigenes Probe-Programm, damit nicht
+alle drei generierten Klassen in dasselbe Binary gelangen.
+
+Der \emph{Speicherbedarf} wird auf drei Ebenen erfasst. Die Zustandsgröße
+\texttt{sizeof} beschreibt den Speicher, den die DSP-Klasse selbst belegt. Der
+maximale Resident-Set-Size-Wert und die Heap-Spitze beschreiben den
+Speicherbedarf des laufenden Prozesses; von beiden wird die Basislinie
+abgezogen. Zusätzlich zählt das Probe-Programm über einen überladenen
+\texttt{new}-Operator die Speicheranforderungen innerhalb von
+\texttt{compute()}. Diese Zahl muss null sein, weil eine
+Speicheranforderung im Audio-Pfad die Echtzeitfähigkeit gefährdet.
+
+Die \emph{numerische Genauigkeit} wird als maximaler und mittlerer
+Absolutfehler sowie als quadratisches Mittel des Fehlers gegenüber einer
+Referenz in doppelter Genauigkeit angegeben. Der relative Fehler wird auf den
+größten Betrag der Referenz bezogen und als Vielfaches der
+Maschinengenauigkeit von \texttt{float} ausgedrückt, also von
+$2^{-23} \approx 1{,}19 \cdot 10^{-7}$. Der Effektivwert wäre hier ein
+ungeeigneter Bezugswert: Bei abklingenden Signalen wie einer Impulsantwort
+sinkt er mit wachsender Signallänge, während der absolute Fehler konstant
+bleibt. Die Fehlerquote stiege dann scheinbar an, obwohl sich nichts
+verschlechtert hat.
+
+Die \emph{Codelänge} wird als Zahl der Codezeilen gezählt. Als Codezeile gilt
+eine Zeile, die weder leer ist noch ausschließlich aus einem einzeiligen
+Kommentar besteht. Gezählt wird getrennt nach der Faust-Quelldatei, dem
+zugehörigen C++-Wrapper und der manuellen Implementierung. Die Trennung ist
+nötig, weil der Wrapper für alle Bausteine nahezu identisch ist und damit
+nicht zur eigentlichen Beschreibungsleistung gehört.
+
+Die \emph{Compile-Zeit} des Faust-Compilers wird ergänzend erhoben. Dazu
+werden aus Vorlagen Programme mit wachsender Rekursionstiefe, wachsender
+Baumtiefe und wachsender FFT-Größe erzeugt und übersetzt. Läufe mit einer
+Übersetzungsdauer über 30~Sekunden werden abgebrochen.
+
 \section{Hardwareumgebung}
- WSL Umgebung und Entwicklungsumgebung
- 
+\label{sec:hardware}
+
+Alle Messungen laufen auf der in Tabelle~\ref{tab:umgebung} beschriebenen
+Plattform. Die Umgebung wird bei jedem Messlauf automatisch protokolliert. Das
+Protokoll enthält neben Hardware und Werkzeugversionen. Zusätzlich wird die Systemlast zum Zeitpunkt der Messung dokumentiert. Als Richtwert für belastbare Messungen gilt eine Ein-Minuten-Last unter $0{,}3$.
+
+\begin{table}[h]
+	\centering
+	\small
+	\caption{Messumgebung}
+	\label{tab:umgebung}
+	\begin{tabular}{ll}
+		\hline
+		Komponente & Ausprägung \\
+		\hline
+		Prozessor        & AMD Ryzen 7 4700U, 8 Kerne, 1 Thread je Kern \\
+		Cache            & L1d 256~KiB, L2 4~MiB, L3 4~MiB \\
+		Befehlssatz      & SSE4.2, AVX, AVX2, FMA \\
+		Betriebssystem   & Ubuntu 24.04 unter WSL2, Kernel 6.18 \\
+		C++-Compiler     & g++ 13.3.0 \\
+		Build-System     & CMake 3.29.3, Ninja 1.11.1 \\
+		Faust-Compiler   & Faust 2.83.1 \\
+		Auswertung       & Python 3.12.3, NumPy 2.5.1 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Die Wahl der Plattform bringt zwei Einschränkungen mit sich, die bei der
+Interpretation der Ergebnisse zu berücksichtigen sind. Erstens laufen die
+Messungen in einer virtuellen Maschine unter WSL2 und nicht auf blankem
+Linux. Zweitens lässt sich der Frequenzregler des Prozessors in dieser
+Umgebung nicht auslesen und damit auch nicht festsetzen. Der verwendete
+Prozessor ist ein Mobilprozessor, dessen Taktfrequenz von Temperatur und
+Energiebudget abhängt.
+
+Der Versuchsaufbau begegnet dem auf drei Wegen. Beide Implementierungen werden
+innerhalb desselben Prozesses und desselben Zeitfensters gemessen, die
+Messungen werden an einen festen Kern gebunden, und es wird eine hohe Zahl von
+Wiederholungen ausgewertet. Berichtet werden deshalb Verhältnisse zwischen
+beiden Implementierungen und keine absoluten Zeiten als
+Plattformkennwerte. Abschnitt~\ref{sec:validitaet} greift diese Einschränkung
+auf.
+
+
 \section{Compilerkonfigurationen}
- Flag-Matrix und ihre Begründungen
- 
-\section{Testdatengenerierung}
- Mit welchen Testdaten gearbeitet wurde
- 
+\label{sec:compiler}
+
+\subsection{Aufruf des Faust-Compilers}
+
+Der Faust-Compiler wird für alle Bausteine gleich aufgerufen, nämlich mit der
+Option \texttt{-cn} für den Namen der erzeugten Klasse und ohne weitere
+Schalter. 
+
+Verwendet wird damit das voreingestellte C++-Backend im skalaren Modus. Die
+Optionen für den Vektor-Modus und den Parallel-Modus werden bewusst nicht
+gesetzt. Die Forschungsfrage vergleicht den generierten C++-Code mit manuell
+geschriebenem nicht optimierten C++-Code. Würde auf der Faust-Seite zusätzlich der Vektor-Modus
+oder OpenMP aktiviert, vergliche man zwei unterschiedliche
+Parallelisierungsstrategien statt zweier Beschreibungswege. Die Wirkung dieser
+Modi ist zudem bereits Gegenstand eigener Untersuchungen
+\parencite{scaringella2003, letz2010}. Die automatische Vektorisierung durch
+g++ bleibt für beide Seiten aktiv.
+
+\subsection{Flag-Matrix}
+
+Beide Implementierungen werden immer mit identischen Compilerflags übersetzt.
+Für die Untersuchung des Einflusses der Compileroptimierung wird
+die in Tabelle~\ref{tab:flags} gezeigte Matrix durchlaufen. Jede
+Konfiguration erhält ein eigenes Build-Verzeichnis, sodass keine
+Zwischenergebnisse aus einer anderen Konfiguration wiederverwendet werden.
+
+\begin{table}[h]
+	\centering
+	\footnotesize
+	\caption{Untersuchte Compilerkonfigurationen}
+	\label{tab:flags}
+	\begin{tabular}{lll}
+		\hline
+		Bezeichnung & Flags & Zweck \\
+		\hline
+		O0            & \texttt{-O0}                           & unoptimierter Bezugspunkt \\
+		O1            & \texttt{-O1}                           & Grundoptimierungen \\
+		O2            & \texttt{-O2}                           & üblicher Standard \\
+		O3            & \texttt{-O3}                           & Vektorisierung aktiv \\
+		O3\_native    & \texttt{-O3 -march=native}             & Befehlssatz der Hardware \\
+		O3\_native\_fast & \texttt{-O3 -march=native -ffast-math} & gelockerte FP-Regeln \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Alle Konfigurationen enthalten zusätzlich \texttt{-DNDEBUG}. Als
+Sprachstandard wird C++17 verwendet. Die Optimierungsflags werden im
+Build-System als erzwungener Cache-Eintrag gesetzt, damit der
+zwischengespeicherte Wert nicht von den tatsächlich verwendeten Flags
+abweichen kann. 
+
+Die Aufnahme von \texttt{-ffast-math} aktiviert unter anderem
+\texttt{-fassociative-math} und erlaubt dem Compiler damit, Gleitkommaadditionen
+umzuordnen. Bei rückgekoppelten Filtern kann das die Abhängigkeitskette
+verlängern und die Laufzeit erhöhen statt sie zu senken. Die Wirkung der
+Option wird nicht als neutral angesetzt und deswegen ist sie teil der Messung.
+
+\section{Testdatengenerierung} 
+\label{sec:testdaten}
+
+Alle Testsignale werden durch ein Python-Skript erzeugt und als binäre
+Rohdateien im Format \texttt{float32} abgelegt. Als Zufallsgenerator dient der
+Standardgenerator von NumPy mit dem festen Startwert $42$. Ziel ist es über beliebig viele Läufe und über beide Implementierungen hinweg wertgleiche Signale zu verwenden. Faust-Variante und C++-Referenz lesen dieselbe Datei.
+
+Es werden zwei Kategorien von Testdaten erzeugt.
+
+\subsubsection*{Signale für die Laufzeitmessung}
+
+Für die Blockgrößen 64, 128, 256, 512, 1024 und 2048 Samples wird jeweils ein
+Signal aus gleichverteiltem Rauschen im Wertebereich $[-1;\ 1]$ erzeugt.
+Gleichverteiltes Rauschen im normalen Audiobereich vermeidet Sonderfälle wie
+denormalisierte Zahlen, die die Laufzeit einzelner Blöcke stark verzerren
+könnten. 
+
+\subsubsection*{Signale für den Genauigkeitsvergleich}
+
+Für den Genauigkeitsvergleich werden die in Tabelle~\ref{tab:signale}
+aufgeführten Signaltypen in den Längen $64$, $256$, $1024$ und $4096$ Samples
+erzeugt. Sie decken typische Audiosignale ebenso ab wie Randfälle.
+
+\begin{table}[h]
+	\centering
+	\small
+	\caption{Signaltypen für den Genauigkeitsvergleich}
+	\label{tab:signale}
+	\begin{tabular}{lll}
+		\hline
+		Typ & Definition & Zweck \\
+		\hline
+		impulse & Einheitsimpuls          & Impulsantwort der Filter \\
+		step    & Sprungfunktion          & Sprungantwort, Einschwingverhalten \\
+		silence & Nullsignal              & trivialer Randfall \\
+		dc      & Konstantwert $0{,}5$    & einfachste Linearitätsprüfung \\
+		sine    & 1-kHz-Sinus bei 48~kHz  & typisches Audiosignal \\
+		extreme & alternierend $\pm 1{,}0$& ungünstigster Fall für Rundung \\
+		noise   & Rauschen, eigener Startwert & unabhängiger Zufallsfall \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection*{Referenz in doppelter Genauigkeit}
+
+Ein Vergleich, der ausschließlich Faust gegen die C++-Referenz stellt, kann
+einen systematischen Fehler nicht aufdecken, den beide Implementierungen
+gemeinsam machen. Deshalb wird zusätzlich für jeden Baustein und jedes
+Testsignal eine Referenzausgabe in doppelter Genauigkeit mit NumPy berechnet
+und als Rohdatei abgelegt. Die Referenzalgorithmen bilden die Struktur der
+C++-Bausteine nach und unterscheiden sich von diesen nur im Datentyp. 
+Beide Implementierungen werden anschließend gegen
+diese Referenz gemessen.
+
+
+\subsection{Ablauf der Reproduzierbarkeit}
+
+Die Messungen laufen als feste Kette von Skripten ab. Die Reihenfolge ist
+bewusst gewählt. Zuerst werden die Referenzausgaben erzeugt, dann die
+Genauigkeit geprüft und erst danach die Laufzeit gemessen. Schlägt die
+Genauigkeitsprüfung fehl, bricht die Kette ab. Laufzeitzahlen zweier
+Implementierungen, die nicht dasselbe berechnen, wären ohne Aussagewert.
+
+\section{Zusammenfassung}
+\label{sec:versuchsdesign-zusammenfassung}
+
+Der Versuchsaufbau vergleicht fünf DSP-Bausteine mit unterschiedlichen
+Datenabhängigkeiten: eine Verstärkungsstufe ohne Rückkopplung, einen
+Akkumulator als reinen Rekursionsfall, einen Biquad-Filter, FIR-Filter in drei
+Längen und FFTs in drei Größen. Beide Implementierungen verwenden dieselben
+Koeffizienten, dieselben Testdaten, dieselbe Schnittstelle und dieselben
+Compilerflags. SIMD-Intrinsics und externe DSP-Bibliotheken sind auf beiden
+Seiten ausgeschlossen. Gemessen werden CPU-Zeit je Block, Streuung,
+Binärgröße, Speicherbedarf, numerische Genauigkeit und Codelänge. Die
+Auswertung stützt sich auf Mediane, Bootstrap-Konfidenzintervalle und einen
+verteilungsfreien Test und kennzeichnet Effekte unterhalb der
+Auflösungsgrenze des Aufbaus als nicht auflösbar. Das folgende Kapitel
+beschreibt, wie diese Festlegungen im Quelltext umgesetzt sind.
 
