@@ -1,0 +1,57 @@
+% ---------------------------------------------------------------------------
+% Abbildung: FIR-Filter - Ringpuffer (manuell) gegenüber ausgerollter Summe (Faust)
+% benötigt: \usepackage{tikz}
+%            \usetikzlibrary{arrows.meta,positioning,calc}
+% Einbinden mit: \input{figures/abb_fir_ringpuffer}
+% ---------------------------------------------------------------------------
+\begin{figure}[htbp]
+	\centering
+	\begin{tikzpicture}[
+		>={Stealth[length=2mm]},
+		font=\footnotesize,
+		cell/.style = {draw, fill=black!4, minimum size=7mm, inner sep=0pt},
+		ttl/.style  = {font=\footnotesize\bfseries, align=center},
+		note/.style = {font=\scriptsize, align=center}
+		]
+		
+		% ===== links: Ringpuffer der manuellen Implementierung ==================
+		\node[ttl] at (0,2.7) {manuelle Implementierung};
+		
+		\foreach \i in {0,...,7} {
+			\node[cell] (c\i) at ({90 - \i*45}:1.75) {\scriptsize \i};
+		}
+		\foreach \i in {0,...,7} {
+			\draw[->, black!45] ({90 - \i*45 - 16}:1.75) arc ({90 - \i*45 - 16}:{90 - \i*45 - 29}:1.75);
+		}
+		
+		\node[note] (pos) at (0,0) {\texttt{pos\_}};
+		\draw[->, thick] (pos) -- (c1);
+		
+		\node[note] at (0,-2.6)
+		{Zugriff auf $x[n-k]$ als \texttt{(pos\_ - k) \& (L-1)}\\
+			Filterlänge $L$ ist Zweierpotenz, deshalb\\
+			Bitmaske statt Division};
+		
+		% ===== rechts: die vom Faust-Compiler erzeugte Form =====================
+		\node[ttl] at (6.4,2.7) {Faust-generierter Code};
+		
+		\node[draw, rounded corners=2pt, fill=black!4, align=left,
+		inner xsep=6pt, inner ysep=5pt] (unroll) at (6.4,0.6) {%
+			$y[n] = b_0\,x[n]$\\
+			$\qquad\ +\ b_1\,x[n-1]$\\
+			$\qquad\ +\ b_2\,x[n-2]$\\
+			$\qquad\ \vdots$\\
+			$\qquad\ +\ b_{L-1}\,x[n-L+1]$};
+		
+		\node[note] at (6.4,-2.6)
+		{die Summe steht vollständig im Quelltext,\\
+			ohne Schleife über die Koeffizienten;\\
+			der erzeugte Code wächst mit $L$};
+		
+	\end{tikzpicture}
+	\caption{Zwei Wege zur selben Faltung. Die manuelle Implementierung hält die
+		vergangenen Eingangswerte in einem Ringpuffer und läuft in einer Schleife
+		über die Koeffizienten. Der Faust-Compiler schreibt dieselbe Summe
+		vollständig aus.}
+	\label{fig:fir-ringpuffer}
+\end{figure}

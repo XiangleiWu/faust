@@ -82,6 +82,7 @@ Als Audio-Baustein ist der Akkumulator hingegen ohne praktischen Wert. Seine
 Ausgabe wächst unbegrenzt, und der aufsummierte Rundungsfehler nimmt mit der
 Blocklänge zu. Er dient rein als ein Diagnosefall und kein Anwendungsfall.
 
+Hallo wie geht es dir
 
 \subsubsection*{Biquad-Filter}
 
@@ -483,14 +484,208 @@ C++-Bausteine nach und unterscheiden sich von diesen nur im Datentyp.
 Beide Implementierungen werden anschließend gegen
 diese Referenz gemessen.
 
+\section{Auswertungsverfahren}
+\label{sec:auswertung}
 
-\subsection{Ablauf der Reproduzierbarkeit}
+\subsection{Kennzahlen und statistische Prüfung}
 
-Die Messungen laufen als feste Kette von Skripten ab. Die Reihenfolge ist
+Aus den Einzelwiederholungen jedes Bausteins wird der Median der CPU-Zeit
+gebildet. Der Vergleich beider Implementierungen erfolgt über das Verhältnis
+\begin{equation}
+	r = \frac{\tilde{t}_{\text{Faust}}}{\tilde{t}_{\text{C++}}},
+	\label{eq:verhaeltnis}
+\end{equation}
+wobei $\tilde{t}$ jeweils den Median bezeichnet. Ein Wert $r < 1$ bedeutet,
+dass die Faust-Variante schneller ist.
+
+Hierzu wird mit dem Bootstrap-Verfahren gearbeitet.
+\parencite{efron2000introduction}. Aus den $50$ gemessenen Werten werden zufällig wieder
+$50$ gezogen, wobei derselbe Wert mehrfach gezogen werden darf. Für diese neue
+Stichprobe wird das Verhältnis erneut berechnet. Nach $5000$ Wiederholungen
+liegen $5000$ Verhältnisse vor. Die mittleren $95$ Prozent davon bilden das
+Konfidenzintervall. Der Startwert des Zufallsgenerators ist fest, damit das
+Intervall reproduzierbar bleibt.
+
+Ergänzend wird der Mann-Whitney-U-Test gerechnet
+\parencite{mcknight2010mann}. Er vergleicht nicht die Messwerte selbst, sondern ihre Reihenfolge: Alle $100$ Werte werden der Größe nach sortiert, und der Test
+prüft, ob die Werte der einen Seite systematisch weiter vorne liegen. Weil nur
+die Reihenfolge zählt, verschiebt ein einzelner Ausreißer das Ergebnis kaum.
+Das passt zu Laufzeitmessungen, die nach unten durch die Hardware begrenzt
+sind, nach oben aber durch das Betriebssystem beliebig weit gestreckt werden
+können.
+
+Das Intervall beschreibt allerdings nur, wie stark das Verhältnis schwanken
+würde, wenn die Messung unter identischen Bedingungen wiederholt würde. Da
+jede der $50$ Wiederholungen bereits ein Mittelwert über viele Aufrufe ist,
+liegen diese Werte eng beieinander, und die Intervalle fallen entsprechend
+schmal aus. Ein schmales Intervall belegt daher eine gut reproduzierbare
+Messung und nicht, dass das Verhältnis den wahren Leistungsunterschied genau
+trifft. Die Wahl der Compilerflags, die unterschiedliche Filterstruktur oder die Virtualisierung der Testplattform gehen in das Intervall nicht ein.
+
+\subsection{Auflösungsgrenze des Messaufbaus}
+\label{sec:aufloesungsgrenze}
+
+Ein signifikanter Unterschied ist nicht automatisch ein
+inhaltlich bedeutsamer Unterschied. Bei einer hohen Zahl von Wiederholungen
+wird auch reines Messrauschen signifikant. Der Versuchsaufbau bestimmt deshalb eine Auflösungsgrenze und kennzeichnet alle Effekte unterhalb dieser Grenze als nicht auflösbar.
+
+Als Bezugspunkt dient die Verstärkungsstufe. Die Annahme lautet, dass beide
+Implementierungen für diesen Baustein praktisch identischen Code erzeugen, die dort gemessene Abweichung also Messrauschen darstellt. Der größte bei diesem Baustein gemessene Abstand $|r - 1|$ über alle Blockgrößen wird als
+Auflösungsgrenze verwendet. Die Annahme ist Teil des Verfahrens und kein
+Ergebnis. Sie ist in Kapitel~\ref{cha:evaluation} anhand des generierten Codes und der gemessenen Werte zu prüfen.
+
+Aus Verhältnis, Konfidenzintervall und Auflösungsgrenze ergibt sich für jeden
+Messpunkt eine von drei Aussagen:
+
+\begin{itemize}
+	\item Enthält das Konfidenzintervall den Wert eins, ist kein Unterschied
+	nachweisbar.
+	\item Liegt $|r - 1|$ unterhalb der Auflösungsgrenze, ist der Unterschied mit
+	diesem Aufbau nicht auflösbar.
+	\item Andernfalls wird der Unterschied als Prozentwert berichtet.
+\end{itemize}
+
+\subsection{Ablauf der Messungen}
+
+Die Messungen laufen als zusammenhängende Kette von Skripten ab. Die Reihenfolge ist
 bewusst gewählt. Zuerst werden die Referenzausgaben erzeugt, dann die
 Genauigkeit geprüft und erst danach die Laufzeit gemessen. Schlägt die
 Genauigkeitsprüfung fehl, bricht die Kette ab. Laufzeitzahlen zweier
 Implementierungen, die nicht dasselbe berechnen, wären ohne Aussagewert.
+
+\section{Übersicht der Messreihen}
+\label{sec:messplan}
+
+Aus den bisherigen Festlegungen ergeben sich neun Messreihen. Sie laufen als
+zusammenhängende Kette ab und werden nicht einzeln von Hand angestoßen.
+Tabelle~\ref{tab:messplan} ordnet jeder Reihe zu, was sie erhebt und zu
+welcher Teilfrage aus Abschnitt~\ref{sec:forschungsfrage} sie beiträgt.
+
+\begin{table}[h]
+	\centering
+	\small
+	\caption{Messreihen und ihr Beitrag zur Beantwortung der Teilfragen}
+	\label{tab:messplan}
+	\begin{tabular}{p{31mm}p{45mm}p{42mm}}
+		\hline
+		Messreihe & Erhebt & Beitrag \\
+		\hline
+		Umgebungsprotokoll  & Hardware, Werkzeuge, Git-Stand & Voraussetzung aller Reihen \\
+		Referenzausgaben    & Sollwerte in doppelter Genauigkeit & Grundlage der Genauigkeitsprüfung \\
+		Genauigkeitsprüfung & Fehler beider Varianten & Genauigkeit; Gültigkeitsnachweis \\
+		Laufzeitmessung     & CPU-Zeit je Block, fünf Blockgrößen & Laufzeit und Skalierung \\
+		Optimierungs-Sweep  & dieselbe Messung, sechs Flagsätze & Einfluss der Compileroptimierung \\
+		Binärgrößenmessung  & gestrippte Größe je Baustein & Binärgröße \\
+		Speichermessung     & Zustand, RSS, Heap, Allokationen & Speicherverbrauch \\
+		Quelltextumfang     & Codezeilen je Variante & Codelänge \\
+		Übersetzungsdauer   & Laufzeit des Faust-Compilers & ergänzend, keine Teilfrage \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Die Reihenfolge ist nicht beliebig. Zuerst entstehen die Referenzausgaben,
+danach wird die Genauigkeit geprüft, und erst zuletzt wird die Laufzeit
+gemessen. Die folgenden Abschnitte beschreiben für jede Reihe, welche
+Behauptung sie prüft, welches Ergebnis sie liefern soll und welche Frage damit
+beantwortet wird.
+
+\subsection{Voraussetzungen}
+
+Die ersten drei Reihen liefern keine Ergebnisse zur Forschungsfrage. Sie
+stellen sicher, dass die übrigen Zahlen überhaupt eine Bedeutung haben.
+
+Das \emph{Umgebungsprotokoll} prüft die Behauptung, dass die Messungen
+wiederholbar sind. Es hält Hardware, Compiler-, Faust- und NumPy-Version, den
+Git-Stand des Repositorys und die Systemlast fest und warnt, wenn zum
+Zeitpunkt der Messung nicht eingecheckte Änderungen vorliegen.
+
+Die \emph{Referenzausgaben} in doppelter Genauigkeit liefern die Sollwerte für jeden Baustein und jedes Testsignal. Sie sind nötig, weil ein Vergleich, der nur Faust gegen die C++-Referenz stellt, einen Fehler nicht aufdecken kann, den beide Seiten gemeinsam machen. Erst eine unabhängig gerechnete Referenz macht solche Fälle sichtbar.
+
+Die \emph{Genauigkeitsprüfung} prüft die zentrale Voraussetzung des gesamten
+Versuchs, nämlich dass beide Implementierungen dieselbe Funktion berechnen.
+Als Ergebnis liefert sie den maximalen und den mittleren Absolutfehler sowie
+das quadratische Mittel des Fehlers beider Varianten gegenüber der Referenz,
+bezogen auf die Auflösung von \texttt{float}. Widerlegt wäre die Voraussetzung, wenn ein Fehler deutlich oberhalb dieser Auflösung läge. Dann rechnen beide Seiten nicht dasselbe, und jeder Laufzeitvergleich wäre gegenstandslos. Aus diesem Grund bricht die Messkette an dieser Stelle ab, statt mit der Laufzeitmessung fortzufahren. Zugleich beantwortet die Reihe die Teilfrage nach der numerischen Genauigkeit.
+
+\subsection{Laufzeit und Compilerverhalten}
+
+Die beiden folgenden Reihen beantworten den Kern der Forschungsfrage.
+
+Die \emph{Laufzeitmessung} prüft die Behauptung, dass Faust-generierter Code
+einer manuell implementierten C++-Referenz mindestens ebenbürtig ist. Als
+Ergebnis liefert sie die Median-CPU-Zeit je Block für fünf Blockgrößen und
+alle Bausteine, dazu das Verhältnis beider Implementierungen mit
+Konfidenzintervall und Signifikanztest. Über die drei Filterlängen und drei
+Transformationslängen beantwortet sie die Teilfrage nach
+dem Skalierungsverhalten. Mitgeprüft wird eine Annahme des Versuchsaufbaus
+selbst. Dass beide Seiten für die Verstärkungsstufe praktisch identischen Code erzeugen und diese deshalb als Auflösungsgrenze taugt
+(Abschnitt~\ref{sec:aufloesungsgrenze}). Fällt diese Annahme durch, ist die
+Grenze anders zu bestimmen.
+
+Der \emph{Optimierungs-Sweep} prüft zwei Behauptungen. Die erste lautet, dass
+Compileroptimierungen auf beide Implementierungen gleich wirken. Die zweite
+stammt aus der Literatur und besagt, dass sich vektorisierbare Ausdrücke von
+solchen mit Datenabhängigkeiten trennen lassen und nur die erste Gruppe von
+der automatischen Vektorisierung profitiert \parencite{scaringella:hal-02158949}. Als
+Ergebnis liefert die Reihe dieselbe Laufzeitmessung unter sechs Flagsätzen.
+Bestätigt wäre die zweite Behauptung, wenn Verstärkungsstufe und FIR-Filter
+beim Übergang zu \texttt{-O3} deutlich gewinnen, Akkumulator und Biquad-Filter
+dagegen kaum. Widerlegt wäre die erste, wenn ein Flagsatz eine Seite
+bevorzugt. Bei \texttt{-ffast-math} ist genau das zu erwarten, weil das
+Umordnen von Gleitkommaoperationen die Abhängigkeitskette rekursiver Filter
+verlängern kann. Beantwortet wird damit die Teilfrage nach dem Einfluss von
+Compileroptimierung und Vektorisierung.
+
+\subsection{Ressourcenverbrauch}
+
+Die \emph{Binärgrößenmessung} prüft die Behauptung, dass der Faust-Compiler
+die Berechnung ausrollt und die manuelle Implementierung sie in Schleifen
+belässt. Trifft sie zu, so wächst die Codegröße der Faust-Variante mit der
+Filterlänge und der Transformationslänge, während die der C++-Referenz gleich
+bleibt. Als Ergebnis liefert die Reihe die gestrippte Größe je Baustein
+abzüglich einer leeren Basislinie, für drei Filterlängen und die FFT.
+Beantwortet wird die Teilfrage nach der Binärgröße. Zugleich ist das Ergebnis
+der eigentliche Beleg für den Codegenerierungsunterschied, der in
+Abschnitt~\ref{sec:bausteine} nur beschrieben wird.
+
+Die \emph{Speichermessung} prüft die Angabe, dass Faust Code mit
+deterministischem und konstantem Speicherverbrauch erzeugt
+\parencite{orlarey2009}. Als Ergebnis liefert sie die Zustandsgröße der
+DSP-Klasse, den maximalen Speicherbedarf des Prozesses, die Heap-Spitze und
+die Zahl der Speicheranforderungen innerhalb von \texttt{compute()}. Widerlegt wäre die Angabe, wenn diese Zahl nicht null ist, denn eine Speicheranforderung im Audio-Pfad wäre für den Echtzeitbetrieb nicht hinnehmbar. Beantwortet wird die Teilfrage nach dem Speicherverbrauch. Zustandsgröße und Heap-Spitze sind dabei gemeinsam zu lesen, weil die Faust-Variante ihren Zustand im Objekt hält, die manuelle Implementierung ihn dagegen dynamisch anfordert.
+
+\subsection{Entwicklungsaufwand}
+
+Der \emph{Quelltextumfang} prüft die Behauptung, dass Faust-Beschreibungen
+kürzer sind als handgeschriebene C++-Implementierungen. Für physikalische
+Modelle wird dieser Vorteil mit 22,91 bis 80,20 Prozent angegeben
+\parencite{michon2011fauststk}. Offen ist, ob er sich auf elementare Bausteine übertragen lässt. Als Ergebnis liefert die Reihe die Codezeilen getrennt nach Faust-Beschreibung, C++-Wrapper und manueller Implementierung. Die Trennung ist entscheidend, weil der Wrapper für alle Bausteine nahezu gleich ist. Zählt man ihn mit, kann der Vorteil bei kleinen Bausteinen verschwinden. Beantwortet wird die Teilfrage nach Codelänge und Implementierungskomplexität.
+
+Die \emph{Übersetzungsdauer} des Faust-Compilers beantwortet keine der
+Teilfragen. Sie wird dennoch erhoben, weil sie das Ausrollen von einer zweiten Seite zeigt. Was sich in der Binärgröße als gewachsener Code niederschlägt,
+muss zuvor erzeugt werden. Als Ergebnis liefert die Reihe die Übersetzungsdauer
+über wachsende Transformationslängen und Rekursionstiefen, mit Abbruch nach
+30~Sekunden. Für die praktische Arbeit mit der Sprache ist das ein spürbarer
+Faktor.
+
+\subsection{Einordnung und Grenzen des Messplans}
+
+Die neun Reihen verteilen sich damit auf vier Aufgaben. Die ersten drei
+sichern die Gültigkeit, die beiden folgenden beantworten die eigentliche
+Frage, drei weitere decken die Nebenaspekte Binärgröße, Speicher und
+Codelänge ab, und die letzte stützt die Einordnung. Zwei der geprüften
+Behauptungen stammen nicht aus der Literatur, sondern aus dem Versuchsaufbau
+selbst. Dass beide Implementierungen dasselbe berechnen, und dass die
+Verstärkungsstufe als Auflösungsgrenze taugt. Beide sind in
+Kapitel~\ref{cha:evaluation} ausdrücklich zu prüfen und nicht vorauszusetzen.
+
+Drei Größen werden bewusst nicht erhoben. Es wird keine Verteilung der
+Rechenzeit einzelner Blöcke ausgewertet, weshalb sich zur Einhaltung der
+Echtzeitfrist keine Aussage treffen lässt. Es wird keine vollständige
+Signalkette gemessen, sondern nur einzelne Bausteine. Und es werden keine
+alternativen Codegenerierungsmodi von Faust untersucht. Die Gründe sind in
+den jeweiligen Abschnitten genannt. Kapitel~\ref{cha:diskussion} greift sie
+gesammelt auf.
 
 \section{Zusammenfassung}
 \label{sec:versuchsdesign-zusammenfassung}

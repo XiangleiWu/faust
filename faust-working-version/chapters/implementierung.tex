@@ -1,15 +1,337 @@
 \chapter{Implementierung der Benchmarks}
+\label{cha:implementierung}
+
+Dieses Kapitel beschreibt, wie diese Festlegungen im Quelltext umgesetzt sind. Es zeigt die Faust-Beschreibungen und die manuellen C++-Implementierungen der fünf Bausteine, die gemeinsame Schnittstelle, über die beide Varianten beschrieben werden, den Aufbau des Build-Systems sowie die Maßnahmen, die eine faire Vergleichsbasis herstellen und die Gleichwertigkeit beider Varianten nachweisen. Die Messergebnisse selbst folgen in Kapitel~\ref{cha:evaluation}.
+
+Abbildung~\ref{fig:pipeline} zeigt den Weg, den beide Varianten nehmen, Aus der Faust-Quellbeschreibung erzeugt der Faust-Compiler eine C++-Klasse. Ein Wrapper bindet diese Klasse an dieselbe Schnittstelle an, die auch die manuelle Implementierung erfüllt. Ab dieser Schnittstelle unterscheiden sich die beiden Varianten nicht mehr. Sie werden vom selben Messprogramm, mit denselben Testdaten und mit denselben Compilerflags verarbeitet. 
+
+\input{figures/abb_pipeline}
 
 \section{Umsetzung der FAUST- und C++-Code}
-Codebeispiele
+\label{sec:umsetzung}
+
+Das Projekt trennt die beiden Varianten in eigene Verzeichnisse auf. Die Faust-Quellbeschreibungen liegen in \texttt{dsp/}, die zugehörigen Wrapper in \texttt{src/faust/} und die manuellen Implementierungen in \texttt{src/native}. Tabelle~\ref{tab:dateien} ordnet jedem Baustein aus Abschitt~\ref{sec:dsp-bausteine} die beiden Dateien zu.
+
+\begin{table}[htb]
+	\centering
+	\caption{Zuordnung der Bausteine zu den Quelldateien}
+	\label{tab:dateien}
+	\begin{tabular}{lll}
+		\toprule
+		Baustein       & Faust-Beschreibung   & manuelle Implementierung \\
+		\midrule
+		Gain           & \texttt{dsp/gain.dsp}   & \texttt{src/native/gain\_native.h}   \\
+		Akkumulator    & \texttt{dsp/accum.dsp}  & \texttt{src/native/accum\_native.h}  \\
+		Biquad-Filter  & \texttt{dsp/biquad.dsp} & \texttt{src/native/biquad\_native.h} \\
+		FIR-Filter     & \texttt{dsp/fir{32/64/256}.dsp}
+		& \texttt{src/native/fir\_native.h}    \\
+		FFT            & \texttt{dsp/fft.dsp}    & \texttt{src/native/fft\_native.h}    \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection*{Die Faust-Seite}
+
+Programm~\ref{prog:dsp-quellen} zeigt die fünf Quellbeschreibungen
+vollständig. Sie sind jeweils ein bis drei Zeilen lang, weil die
+Signalverarbeitung nicht ausprogrammiert, sondern als Komposition benannt wird.
+
+\begin{program}
+	\caption{Die fünf Faust-Quellbeschreibungen}
+	\label{prog:dsp-quellen}
+	\begin{CCode}
+		// gain.dsp
+		process = *(hslider("gain", 0.5, 0, 2, 0.01));
+		
+		// accum.dsp
+		process = + ~ _;
+		
+		// biquad.dsp
+		process = fi.tf2(0.00255054, 0.00510107, 0.00255054,
+		-1.85214649, 0.86234863);
+		
+		// fir32.dsp  (fir64.dsp und fir256.dsp unterscheiden sich nur in N)
+		N = 32;
+		process = fi.fir(par(i, N, 2.0*(i+1)/(N*(N+1))));
+		
+		// fft.dsp
+		N = 64;
+		process = an.rtocv(N) : an.fft(N);
+	\end{CCode}
+\end{program}
+
+Die Verstärkungsstufe ist eine Multiplikation mit einem Bedienelement, dessen
+Vorgabewert $0{,}5$ beträgt. Der Akkumulator besteht aus dem Rekursionsoperator
+aus Tabelle~3.1 in seiner kürzesten Form. Der Biquad-Filter und die FIR-Filter
+verwenden Bibliotheksfunktionen: \texttt{fi.tf2} nimmt die fünf Koeffizienten
+entgegen, \texttt{fi.fir} eine Koeffizientenliste, die \texttt{par} nach der
+Vorschrift aus Abschnitt~\ref{sec:bausteine} erzeugt. Die FFT entsteht aus zwei
+hintereinandergeschalteten Bibliotheksfunktionen: \texttt{an.rtocv} bildet aus
+dem Eingangssignal ein gleitendes Fenster der Länge $N$, \texttt{an.fft}
+transformiert dieses Fenster.
+
+Die fünf Beschreibungen enthalten keine Angabe darüber, wie die Berechnung
+abläuft. Weder Schleifen noch Puffer noch Indexrechnung kommen vor. Genau
+diesen Teil ergänzt der Faust-Compiler. Sie interpretiert aus dem Rechenoperationen den optimalen C++-Code.
+
+Die manuellen Implementierungen sind Header-only-Klassen. Für Gain und
+Akkumulator ist die Umsetzung unmittelbar: eine Schleife über die Samples mit
+einer Multiplikation beziehungsweise einer Addition auf einer im Objekt
+gehaltenen Zustandsvariablen.
+
+Der Biquad-Filter folgt der Direktform~I und ist damit die wörtliche
+Übertragung der Differenzengleichung. Programm~\ref{prog:biquad-native} zeigt
+die Schleife. Sie hält vier Werte, nämlich die beiden vorherigen Ein- und
+Ausgangswerte, und schiebt sie nach jedem Sample weiter.
+
+\begin{program}
+	\caption{Manuelle Biquad-Implementierung in Direktform~I}
+	\label{prog:biquad-native}
+	\begin{CCode}
+		for (int i = 0; i < count; ++i) {
+			float x0 = in[i];
+			float y0 = b0_*x0 + b1_*x1_ + b2_*x2_ - a1_*y1_ - a2_*y2_;
+			x2_ = x1_; x1_ = x0;
+			y2_ = y1_; y1_ = y0;
+			out[i] = y0;
+		}
+	\end{CCode}
+\end{program}
+
+Die Faust-Bibliotheksfunktion \texttt{fi.tf2} ergibt dagegen die Direktform~II
+mit nur einer Verzögerungskette und zwei gespeicherten Werten.
+Abbildung~\ref{fig:biquad-formen} stellt beide Formen gegenüber. Der
+Unterschied ist keine Nachlässigkeit, sondern die in
+Abschnitt~\ref{sec:bausteine} begründete Entscheidung, jede Seite in der für
+sie naheliegenden Form zu formulieren.
+
+\input{figures/abb_biquad_formen}
+
+Der FIR-Filter ist ein Klassen-Template über die Filterlänge. Die vergangenen
+Eingangswerte liegen in einem Ringpuffer. Da alle drei Filterlängen
+Zweierpotenzen sind, wird der Ringpuffer über eine Bitmaske adressiert; ein
+\texttt{static\_assert} sichert diese Voraussetzung zur Übersetzungszeit ab.
+Die Koeffizienten werden im Konstruktor nach derselben Vorschrift berechnet
+wie in der Faust-Beschreibung. Der Faust-Compiler wählt hier einen anderen Weg
+und schreibt die gesamte Faltung als eine einzige Summe aus.
+Abbildung~\ref{fig:fir-ringpuffer} zeigt beide Formen nebeneinander.
+
+\input{figures/abb_fir_ringpuffer}
+
+Die FFT ist der aufwendigste der fünf Bausteine. Die manuelle Implementierung
+ist eine iterative Radix-2-FFT nach Cooley-Tukey. Die Bit-Umkehrtabelle und die
+Twiddle-Faktoren werden einmalig in \texttt{initForSize()} berechnet und
+anschließend nur noch gelesen. In der Verarbeitungsschleife wird für jedes
+Eingangssample das Fenster aus dem Verlaufspuffer serialisiert, transformiert
+und als Real- und Imaginärteil auf $2N$ Ausgänge geschrieben.
+
+Zwei Festlegungen sind dabei wesentlich, weil sie darüber entscheiden, ob
+beide Varianten überhaupt dasselbe berechnen. Erstens wird bewusst keine
+Fremdbibliothek verwendet. Eine frühere Fassung des Versuchsaufbaus nutzte
+FFTW; damit hätte der Vergleich Faust gegen eine handoptimierte Bibliothek mit
+Assembler-Kernen gestellt und nicht gegen manuell geschriebenen C++-Code.
+Zweitens serialisiert \texttt{an.rtocv} das Analysefenster mit dem neuesten
+Sample zuerst. Die manuelle Implementierung folgt derselben Reihenfolge. Wird
+das Fenster in der natürlichen Zeitrichtung gefüllt, berechnen beide Varianten
+unterschiedliche Spektren, ohne dass eine von beiden falsch wäre. Die
+Reihenfolge ist deshalb als Übersetzungsschalter im Quelltext festgehalten und
+dokumentiert.
+
 
 \section{Gemeinsame Test-Schnittstelle}
+\label{sec:schnittstelle}
+
+Damit dieselben Messprogramme beide Varianten vermessen können, erfüllen beide
+dieselbe abstrakte Schnittstelle. Programm~\ref{prog:idspblock} zeigt sie
+vollständig.
+
+\begin{program}
+	\caption{Die gemeinsame Schnittstelle \texttt{IDSPBlock}}
+	\label{prog:idspblock}
+	\begin{CCode}
+		class IDSPBlock {
+			public:
+			virtual void init(int sampleRate) = 0;
+			virtual void compute(int count, float** inputs, float** outputs) = 0;
+			virtual int  getNumInputs() = 0;
+			virtual int  getNumOutputs() = 0;
+			virtual ~IDSPBlock() = default;
+		};
+	\end{CCode}
+\end{program}
+
+\input{figures/abb_schnittstelle}
+
+Diese Aufteilung hat drei Folgen für die Messung.
+
+\begin{enumerate}
+	\item Jedes Messprogramm ist eine Template-Funktion über den Typ des
+	Bausteins. Faust- und C++-Variante durchlaufen deshalb denselben
+	Quelltext.
+	\item Der Wrapper ist für alle Bausteine nahezu identisch und gehört nicht
+	zur eigentlichen Beschreibungsleistung. Die Codelängenmessung aus
+	Abschnitt~\ref{sec:messgroessen} zählt ihn deshalb getrennt.
+	\item Der Aufwand des Wrappers beschränkt sich auf einen virtuellen Aufruf
+	je Block, nicht je Sample. Er fällt für beide Varianten gleichermaßen
+	an und geht damit in den berichteten Verhältnissen nicht hervor.
+\end{enumerate}
+
+Zwei Bausteine erfordern eine Abweichung von diesem Muster. Bei den
+FIR-Filtern bindet der gemeinsame Wrapper bewusst keine der generierten
+Dateien ein. Erst die drei größenspezifischen Wrapper tun das. Ohne diese
+Trennung enthielte jede Übersetzungseinheit alle drei generierten Klassen, und
+die Binärgrößenmessung wäre nicht gültig. Bei der FFT ist der Unterschied woanders. Die Faust-Klasse ist je Transformationslänge eine eigene,
+vollständig ausgerollte Klasse. Wobei die manuelle Implementierung die Länge
+erst zur Laufzeit in \texttt{initForSize()} erhält. Deshalb wird je Länge ein
+eigenes ausführbares Programm erzeugt.
 
 \section{Build-Systeme}
+\label{sec:build}
+
+Das Projekt wird mit CMake ab Version~3.20 und Ninja übersetzt, als
+Sprachstandard dient C++17. Google Benchmark ist als Submodul eingebunden und
+wird gemeinsam mit dem Projekt gebaut, sodass die Messbibliothek dieselben
+Flags erhält wie der Messcode.
+
+Der Aufruf des Faust-Compilers ist als CMake-Funktion gekapselt
+(Programm~\ref{prog:faust-compile}). Sie meldet die erzeugte Datei als
+Build-Artefakt an, sodass CMake die Abhängigkeit zur Quellbeschreibung kennt
+und nach einer Änderung an der \texttt{.dsp}-Datei neu übersetzt.
+
+\begin{program}
+	\caption{Einbindung des Faust-Compilers in das Build-System}
+	\label{prog:faust-compile}
+	\begin{CCode}
+		function(faust_compile DSP_FILE OUT_CPP CLASS_NAME)
+		add_custom_command(
+		OUTPUT ${OUT_CPP}
+		COMMAND ${FAUST_EXECUTABLE} -cn ${CLASS_NAME}
+		${DSP_FILE} -o ${OUT_CPP}
+		DEPENDS ${DSP_FILE}
+		VERBATIM)
+		endfunction()
+	\end{CCode}
+\end{program}
+
+Die Option \texttt{-cn} legt den Namen der erzeugten Klasse fest. Weitere
+Schalter werden nicht gesetzt; es gilt damit das voreingestellte C++-Backend im
+skalaren Modus, wie in Abschnitt~\ref{sec:compilerkonfig} begründet.
+
+Die generierten Dateien werden nicht getrennt übersetzt, sondern vom jeweiligen
+Wrapper eingebunden. Die Faust-Bausteine sind deshalb reine
+Schnittstellen-Bibliotheken, die nur Include-Pfade beisteuern. Der Vorteil
+dieser Konstruktion zeigt sich bei den größenabhängigen Bausteinen: Für jede
+FFT-Länge erzeugt das Build-System aus einer Vorlage eine eigene
+Quellbeschreibung in einem eigenen Verzeichnis und übersetzt sie zu einer
+eigenen Klasse. Der Wrapper bleibt dabei unverändert und sieht über den
+Include-Pfad genau die für sein Ziel erzeugte Datei.
+
+Die Optimierungsflags stehen in einer einzigen Cache-Variablen, die die
+Release-Flags überschreibt. Zusätzlich schreibt der Build eine Datei mit den
+tatsächlich verwendeten Übersetzungsbefehlen, die Abschnitt~\ref{sec:fair} für
+die Prüfung der Vergleichsbasis heranzieht. Jede Konfiguration der Flag-Matrix
+aus Abschnitt~\ref{sec:compilerkonfig} erhält ein eigenes Build-Verzeichnis, so
+dass keine Zwischenergebnisse aus einer anderen Konfiguration wiederverwendet
+werden.
+
+Neben den Messprogrammen entstehen die Probe-Programme für die Binärgrößen- und Speichermessung. Sie stammen alle aus einer einzigen Quelldatei; Header und Klassenname des zu messenden Bausteins werden ihr über Präprozessor-Definitionen mitgegeben. Dadurch unterscheiden sich die Probe-Programme untereinander ausschließlich im gemessenen Baustein.
 
 \section{Sicherstellung einer fairen Vergleichsbasis}
-Gleiche flags; Gleiche Inputs; 
+\label{sec:fair}
+
+Der Vergleich ist nur dann aussagekräftig, wenn sich die beiden Varianten
+ausschließlich in dem unterscheiden, was untersucht werden soll, nämlich in der
+Art, wie der C++-Code entstanden ist. Der Aufbau stellt das auf fünf Wegen
+sicher.
+
+\paragraph{Gleiche Compilerflags.}
+Beide Varianten werden im selben Build-Verzeichnis mit derselben
+Flag-Variablen übersetzt. Die Absicht allein genügt allerdings nicht als
+Nachweis. Ein eigenes Prüfskript vergleicht deshalb in drei Stufen: den
+Build-Typ im Cache, die gesetzten Release-Flags und schließlich die
+tatsächlichen Übersetzungsbefehle jeder einzelnen Übersetzungseinheit. Erst die
+dritte Stufe ist ein Beweis; die ersten beiden zeigen nur die Absicht. Weicht
+eine Übersetzungseinheit ab, bricht die Messkette ab.
+
+\paragraph{Gleiche Eingangsdaten.}
+Beide Varianten lesen dieselbe Datei mit denselben Werten. Die Testsignale
+entstehen einmalig aus dem Skript aus Abschnitt~\ref{sec:testdaten} und liegen
+als binäre Rohdaten vor. Ein Zufallsgenerator mit festem Startwert stellt
+sicher, dass wiederholte Läufe dieselben Signale verwenden.
+
+\paragraph{Gleicher Messrahmen.}
+Faust- und C++-Variante werden im selben Prozess, im selben Zeitfenster und
+über dieselbe Template-Funktion gemessen. Innerhalb der Messschleife verhindern
+für beide dieselben Hilfsfunktionen, dass der Compiler den Aufruf als toten
+Code entfernt.
+
+\paragraph{Gleiche Mittel.}
+Auf beiden Seiten sind explizit programmierte SIMD-Intrinsics und externe
+DSP-Bibliotheken ausgeschlossen. Die automatische Vektorisierung des
+C++-Compilers bleibt für beide aktiv. Damit bleibt sichtbar, was die
+Codegenerierung des Faust-Compilers gegenüber gewöhnlichem C++ bewirkt.
+
+\paragraph{Getrennte Programme je Messgröße.}
+Die Genauigkeitsprogramme werden ausdrücklich ohne gelockerte
+Gleitkommaregeln übersetzt, weil dort die tatsächliche Rundung in einfacher
+Genauigkeit gemessen werden soll und nicht die Wirkung einer
+Compileroptimierung. Für die Binärgrößenmessung enthält jedes Probe-Programm
+genau einen Baustein, damit die Differenz zur Basislinie diesem Baustein
+zugeordnet werden kann. 
+
+
+Zwei Unterschiede bleiben bestehen und lassen sich mit diesem Aufbau nicht
+auflösen. Der Biquad-Filter liegt auf beiden Seiten in unterschiedlicher
+Direktform vor, und die FFT ist auf der Faust-Seite je Länge ausgerollt,
+während sie auf der C++-Seite zur Laufzeit parametriert wird. Beide
+Unterschiede folgen daraus, dass jede Seite in ihrer naheliegenden Form
+formuliert wurde. Sie werden hier benannt und in
+Kapitel~\ref{cha:evaluation} bei der Deutung der betroffenen Messwerte erneut
+aufgegriffen.
 
 \section{Verifikation der Ergebnisse}
-Zeigen dass beide Codes die selben Ergebnisse liefern.
+\label{sec:verifikation}
+
+Ein Laufzeitvergleich zweier Implementierungen ist wertlos, solange nicht
+gezeigt ist, dass beide dasselbe berechnen. Die Verifikation läuft deshalb vor
+jeder Laufzeitmessung und in zwei Stufen.
+
+Die erste Stufe vergleicht die Faust-Variante unmittelbar mit der
+C++-Variante. Beide verarbeiten nacheinander dieselben Testsignale aus
+Abschnitt~\ref{sec:testdaten} in allen vorgesehenen Längen. Ausgewertet werden
+der maximale Absolutfehler, das quadratische Mittel des Fehlers und der
+größte relative Fehler zwischen den beiden Ausgangssignalen.
+
+Diese Stufe allein genügt jedoch nicht. Stimmen beide Varianten überein, so ist damit nur gezeigt, dass sie sich einig sind, nicht, dass sie recht haben. Ein systematischer Fehler, den beide gemeinsam machen, bliebe unentdeckt. Ein
+solcher Fall ist im Verlauf der Arbeit tatsächlich aufgetreten: Beim Vergleich
+der FFT ergab eine der beiden möglichen Fensterorientierungen ein exakt
+negiertes Spektrum. Ohne eine dritte, unabhängige Instanz wäre nicht
+entscheidbar gewesen, welche der beiden Varianten der Konvention folgt.
+
+Die zweite Stufe führt deshalb eine Referenz ein. Für jeden Baustein und jedes
+Testsignal berechnet ein NumPy-Skript die Ausgabe in doppelter Genauigkeit und
+legt sie als Rohdatei ab. Die Referenzalgorithmen bilden die Struktur der
+C++-Bausteine nach und unterscheiden sich von ihnen nur im Datentyp. Beide
+Implementierungen werden anschließend gegen diese Referenz gemessen. Berichtet
+werden der maximale und der mittlere Absolutfehler sowie das quadratische
+Mittel des Fehlers. Der relative Fehler wird auf den größten Betrag der
+Referenz bezogen und als Vielfaches der Maschinengenauigkeit von \texttt{float}
+ausgedrückt.
+
+Zu jedem Baustein gehört eine Toleranzschwelle, die dem Prüfprogramm als
+Argument übergeben wird. Überschreitet ein Signal diese Schwelle, liefert das
+Programm einen Fehlercode zurück und die Messkette bricht ab. Laufzeitzahlen
+zweier Implementierungen, die nicht dasselbe berechnen, kämen damit gar nicht
+erst zustande.
+
+Zwei weitere Prüfungen ergänzen den Nachweis. Ein eigenes Programm lässt den
+Akkumulator über viele Millionen Blöcke laufen und protokolliert seinen
+Zustand. Damit lässt sich beobachten, wie der Wert über die Zeit anwächst und
+an welchem Punkt die Auflösung der einfachen Genauigkeit erschöpft ist. Diese
+Prüfung ist kein Genauigkeitsnachweis, sondern belegt, dass der beobachtete
+Fehler des Akkumulators eine Eigenschaft des Bausteins ist und keine Eigenschaft einer der beiden Implementierungen. Die Probe-Programme zählen darüber hinaus über einen überladenen Speicheroperator die Speicheranforderungen innerhalb der Verarbeitungsmethode mit. Diese Zahl muss für beide Varianten null sein, weil
+eine Speicheranforderung im Audio-Pfad die Echtzeitfähigkeit gefährdet.
+
+Damit sind die Vorkehrungen beschrieben, unter denen gemessen wird.
+Kapitel~\ref{cha:evaluation} berichtet die Ergebnisse dieser Messungen.
 

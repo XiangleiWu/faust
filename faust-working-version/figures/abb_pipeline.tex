@@ -1,0 +1,58 @@
+% ---------------------------------------------------------------------------
+% Abbildung: Weg vom Quelltext zum Messwert
+% benötigt: \usepackage{tikz}
+%            \usetikzlibrary{arrows.meta,positioning,calc}
+% Einbinden mit: \input{figures/abb_pipeline}
+% ---------------------------------------------------------------------------
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[
+		>={Stealth[length=2mm]},
+		font=\footnotesize,
+		box/.style  = {draw, rounded corners=2pt, align=center,
+			inner xsep=4pt, inner ysep=3pt, minimum height=8mm},
+		file/.style = {box, fill=black!3},
+		tool/.style = {box, fill=black!14},
+		lbl/.style  = {font=\scriptsize\itshape, inner sep=1.5pt}
+		]
+		
+		% ---- Zeile 1: der Weg über Faust --------------------------------------
+		\node[file, anchor=west] (dsp)  at (0   , 0) {\texttt{biquad.dsp}};
+		\node[tool, anchor=west] (fc)   at (2.6 , 0) {Faust-Compiler};
+		\node[file, anchor=west] (gen)  at (5.6 , 0) {\texttt{biquad\_generated.cpp}};
+		\node[file, anchor=west] (wrap) at (9.9 , 0) {\texttt{FaustBiquad}};
+		
+		\draw[->] (dsp)  -- (fc);
+		\draw[->] (fc)   -- (gen);
+		\draw[->] (gen)  -- (wrap);
+		
+		% ---- Zeile 2: der manuelle Weg -----------------------------------------
+		\node[file, anchor=west] (nat)  at (0   ,-1.6) {\texttt{biquad\_native.h}};
+		\node[file, anchor=west] (natc) at (9.9 ,-1.6) {\texttt{NativeBiquad}};
+		\draw[->] (nat) -- (natc);
+		
+		% ---- gemeinsame Schnittstelle ------------------------------------------
+		\node[tool] (iface) at (6.0,-3.2) {gemeinsame Schnittstelle \texttt{IDSPBlock}};
+		\draw[->] (wrap.east) -- (13.0, 0)    -- (13.0,-3.2) -- (iface.east);
+		\draw[-]  (natc.east) -- (13.0,-1.6);
+		
+		% ---- Messung ------------------------------------------------------------
+		\node[tool] (bench) at (6.0,-4.9) {Messprogramm (Google Benchmark)};
+		\node[file, anchor=west] (data) at (0,-4.9) {\texttt{testdata/}};
+		\draw[->] (iface) -- (bench);
+		\draw[->] (data)  -- (bench);
+		
+		% ---- Auswertung ---------------------------------------------------------
+		\node[file] (json) at (2.0,-6.6) {\texttt{results/*.json}};
+		\node[tool] (eval) at (6.0,-6.6) {Auswertung (Python)};
+		\node[file] (plot) at (10.3,-6.6) {Tabellen und Diagramme};
+		
+		\draw[->] (bench.south) -- ++(0,-0.5) -| (json.north);
+		\draw[->] (json) -- (eval);
+		\draw[->] (eval) -- (plot);
+		
+	\end{tikzpicture}
+	\caption{Vom Quelltext zum Messwert am Beispiel des Biquad-Filters. Der
+		Faust-Compiler erzeugt der .dsp-Datei eine C++-Klasse, die ein Wrapper an dieselbe Schnittstelle anbindet wie die manuelle Implementierung und dann identisch verläuft.}
+	\label{fig:pipeline}
+\end{figure}

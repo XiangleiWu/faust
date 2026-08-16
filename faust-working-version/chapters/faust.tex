@@ -57,6 +57,13 @@ Tabelle~\ref{tab:faust-operatoren} fasst die fünf Kompositionsoperatoren der FA
 	\end{tabular}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/abb_faust_operatoren}
+\caption{Die fünf Kompositionsoperatoren der Faust-Blockdiagramm}
+\label{abb:faust-operatoren}
+\end{figure}
+
 Beispiel für sequenzielle Komposition: \texttt{process = + : abs;} verbindet die Ausgabe einer Addition mit einem Absolutwert.  \parencite[S. 4]{orlarey:hal-02159014}
 
 Beispiel für rekursive Komposition: \texttt{process = + ~ \_;} erzeugt einen Integrator mit einer impliziten Verzögerung um ein Sample $Y(t) = X(t) + Y(t-1)$.  \parencite[S. 4]{orlarey:hal-02159014}

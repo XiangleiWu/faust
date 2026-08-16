@@ -4,8 +4,8 @@ Dieses Kapitel vermittelt die signaltheoretischen und laufzeitbezogenen Grundlag
 \section{Digitale Audiosignale und blockweise Verarbeitung}
 \label{sec:digitale-audiosignale}
 \subsection{Abtastung und diskrete Sample-Folgen}
-Ein analoges Audiosignal liegt zeitkontinuierlich vor. Für die digitale Verarbeitung wird es in regelmäßigen Zeitabständen abgetastet und als diskrete Folge von Sample-Werten dargestellt. Jedes Sample besitzt einen festen zeitlichen Abstand zum vorherigen Sample \parencite[Kap.~\enquote{Acoustic Signal Processing}, S.~520--522]{rossing2007springer}.
-Die Abtastfrequenz $f_s$ bestimmt die Zahl der Messungen pro Sekunde; das Abtastintervall beträgt
+Ein analoges Audiosignal liegt zeitkontinuierlich vor. Für die digitale Verarbeitung wird es in regelmäßigen Zeitabständen abgetastet und als diskrete Folge von Sample-Werten dargestellt \parencite{rossing2007springer}. Jedes Sample besitzt einen festen zeitlichen Abstand zum vorherigen Sample \parencite{rossing2007springer}.
+Die Abtastfrequenz $f_s$ bestimmt die Zahl der Messungen pro Sekunde. Das Abtastintervall beträgt
 \begin{equation}
 	T_s = \frac{1}{f_s}.
 \end{equation}
@@ -15,14 +15,14 @@ Die digitale Darstellung eines kontinuierlichen Signals $x(t)$ lautet damit
 	x[n] = x(nT_s), \qquad n \in \mathbb{Z}.
 \end{equation}
 \noindent Diese zeitdiskrete Darstellung beschreibt die Überführung eines kontinuierlichen Signals in eine Sample-Folge \parencite[S.~520--522]{rossing2007springer}.
-Das Nyquist-Shannon-Kriterium fordert, dass die Abtastfrequenz mindestens doppelt so hoch wie die höchste im Signal enthaltene Frequenz sein muss. Andernfalls können Frequenzanteile nicht eindeutig rekonstruiert werden \parencite[Kap.~2.1, S.~19--26]{tan2018digital}.
+Das Nyquist-Shannon-Kriterium fordert, dass die Abtastfrequenz mindestens doppelt so hoch wie die höchste im Signal enthaltene Frequenz sein muss. Andernfalls können Frequenzanteile nicht eindeutig rekonstruiert werden \parencite[Kap.~2.1, S.~19--26]{tan2018digital}. Die Abtastung mit einer Rate oberhalb von $2f_B$ entspricht die Nyquist-Abtastung und behandelt die zugehörige Bandbegrenzung als Voraussetzung einer aliasfreien digitalen Darstellung \parencite[S.~63--65]{zolzer2022digital}. 
 \begin{equation}
 	f_s \geq 2f_{\max}.
 \end{equation}
-\noindent Diese Bedingung bildet die Grundlage einer aliasfreien digitalen Darstellung \parencite[S.~521--522]{rossing2007springer}.
+
 In der vorliegenden Arbeit werden Audiosignale als Folgen von Gleitkommawerten verarbeitet. Die Quantisierung ist daher nur als Übergang von der analogen in die digitale Darstellung relevant. Eine separate Untersuchung der Bittiefe oder der Quantisierungsqualität ist nicht Gegenstand der Benchmarks.
 \subsection{Audio-Blöcke und Echtzeitdeadline}
-Audiosysteme zur digitalen Signalverarbeitung (DSP) können Eingangssamples sowohl samplebasiert als auch blockbasiert verarbeiten. Blockbasierte Verfahren werden insbesondere bei der digitalen Filterung, Faltung, FFT und anderen echtzeitfähigen DSP-Anwendungen eingesetzt \parencite[S.~727]{tan2018digital}.
+Audiosysteme zur digitalen Signalverarbeitung (DSP) können Eingangssamples sowohl samplebasiert als auch blockbasiert verarbeiten \parencite[S.~727]{tan2018digital}. Blockbasierte Verfahren werden insbesondere bei der digitalen Filterung, Faltung, FFT und anderen echtzeitfähigen DSP-Anwendungen eingesetzt \parencite[S.~727]{tan2018digital}.
 Ein Block besteht aus $N$ aufeinanderfolgenden Samples. Bei einer Abtastfrequenz $f_s$ und einer Abtastperiode $T_s = 1/f_s$ besitzt ein Block die zeitliche Dauer
 \begin{equation}
 	T_{\mathrm{Block}} = N T_s = \frac{N}{f_s}.
@@ -43,12 +43,12 @@ Bei überlappender Verarbeitung wird dagegen alle $H$ Samples ein neuer Verarbei
 \begin{equation}
 	T_{\mathrm{Deadline}} = T_{\mathrm{Hop}} = \frac{H}{f_s}.
 \end{equation}
-\noindent Die Hop-Zeit stellt damit die maßgebliche Rechenzeitfrist für eine überlappende blockbasierte Echtzeitverarbeitung dar \parencite[S.~499--500, 761]{tan2018digital}.
-Die Blockgröße und die Hop-Größe beeinflussen unterschiedliche Eigenschaften des Systems. Eine kleinere Blockgröße reduziert die durch die Pufferung verursachte Latenz, verkürzt jedoch zugleich die verfügbare Zeit für die Verarbeitung. Bei einer Überlappung von 50 Prozent gilt beispielsweise
+\noindent Die Hop-Zeit stellt damit die maßgebliche Rechenzeitfrist für eine überlappende blockbasierte Echtzeitverarbeitung dar.
+Die Blockgröße und die Hop-Größe beeinflussen unterschiedliche Eigenschaften des Systems. Eine kleinere Blockgröße reduziert die durch die Pufferung verursachte Latenz, verkürzt jedoch zugleich die verfügbare Zeit für die Verarbeitung \parencite[S.~499--500, 761]{tan2018digital}. Bei einer Überlappung von 50 Prozent gilt beispielsweise
 \begin{equation}
-	H = \frac{N}{2}.
+	H = \frac{N}{2}. 
 \end{equation}
-\noindent Die Blockgröße und die Hop-Größe sind deshalb zentrale Parameter für die Konfiguration und Bewertung von Echtzeit-Benchmarks.
+\noindent Die Blockgröße und die Hop-Größe sind deshalb zentrale Parameter für die Konfiguration und Bewertung von Echtzeit-Benchmarks \parencite{zolzer2022digital}.
 \section{Elementare DSP-Bausteine}
 \label{sec:dsp-bausteine}
 \subsection{Verstärkungsstufe}
@@ -57,7 +57,7 @@ Eine Verstärkungsstufe skaliert jedes Eingangssample mit einem konstanten Verst
 	y[n] = g \cdot x[n].
 \end{equation}
 \noindent Diese Skalierung stellt eine elementare lineare Operation der digitalen Audioverarbeitung dar \parencite{smith2007introduction}.
-Der Baustein benötigt pro Sample lediglich eine Multiplikation und dient deshalb als einfacher Referenzfall für den Vergleich des durch Faust erzeugten Codes mit der C++-Referenz. Bei einer Angabe der Verstärkung in Dezibel gilt
+Der Baustein benötigt pro Sample eine Multiplikation und dient deshalb als einfacher Referenzfall für den Vergleich des durch Faust erzeugten Codes mit der C++-Referenz. Bei einer Angabe der Verstärkung in Dezibel gilt
 \begin{equation}
 	g = 10^{G_{\mathrm{dB}}/20}.
 \end{equation}
@@ -69,9 +69,9 @@ Abbildung~\ref{fig:Verstaerkungsstufe-beispiel} veranschaulicht eine Verstärkun
 	\caption{Beispiel einer Verstärkungsstufe mit $g=0.5$. Die Amplitude jedes Eingangssamples wird halbiert. Eigene Darstellung nach \parencite{smith2007introduction}.}
 	\label{fig:Verstaerkungsstufe-beispiel}
 \end{figure}
-Die Verstärkungsstufe bildet einen einfachen, vollständig datenparallelen Benchmark-Kern. Vektorisierung bezeichnet dabei die Ausführung derselben Operation auf mehreren Datenwerten durch Single-Instruction-Multiple-Data-Instruktionen (SIMD-Instruktionen). Eine sampleweise Skalierung besitzt daher ein hohes Vektorisierungspotenzial \parencite{scaringella:hal-02158949}.
+Die Verstärkungsstufe bildet einen einfachen, vollständig datenparallelen Benchmark-Kern. Vektorisierung bezeichnet dabei die Ausführung derselben Operation auf mehreren Datenwerten durch Single-Instruction-Multiple-Data-Instruktionen (SIMD-Instruktionen) \parencite{scaringella:hal-02158949}. Eine sampleweise Skalierung besitzt daher ein hohes Vektorisierungspotenzial. Der Faust-Compiler kann solche Ausdrücke über seine Codegeneirungsstrategien in vektorisierbaren C++-Code übersetzen \parencite[S.~2--3,15]{orlarey:hal-02159014}.
 \subsection{Rekursionsfilter (IIR-Filter) und Biquad-Struktur}
-Ein Rekursionsfilter, auch Infinite-Impulse-Response-Filter (IIR-Filter) genannt, verwendet neben aktuellen und vergangenen Eingangswerten auch vergangene Ausgangswerte. Die Rückkopplung führt dazu, dass der Filterzustand über mehrere Samples erhalten bleibt. Für die Untersuchung wird ein Biquad-Filter, also ein IIR-Filter zweiter Ordnung, verwendet. Seine allgemeine Differenzengleichung lautet bei normiertem $a_0 = 1$
+Ein Rekursionsfilter, auch Infinite-Impulse-Response-Filter (IIR-Filter) genannt, verwendet neben aktuellen und vergangenen Eingangswerten auch vergangene Ausgangswerte. Die Rückkopplung führt dazu, dass der Filterzustand über mehrere Samples erhalten bleibt. Für die Untersuchung wird ein Biquad-Filter, also ein IIR-Filter zweiter Ordnung, verwendet \parencite{zolzer2022digital}. Seine allgemeine Differenzengleichung lautet bei normiertem $a_0 = 1$
 \begin{equation}
 	y[n] = b_0x[n] + b_1x[n-1] + b_2x[n-2] - a_1y[n-1] - a_2y[n-2].
 \end{equation}
@@ -83,14 +83,14 @@ Abbildung~\ref{fig:biquad-beispiel} zeigt die Wirkung eines Biquad-IIR-Tiefpasse
 	\caption{Beispiel eines Biquad-IIR-Tiefpasses zweiter Ordnung mit einer Grenzfrequenz von $f_c=800~\mathrm{Hz}$. Der Frequenzgang zeigt die Dämpfung hoher Frequenzanteile. Darstellung nach \parencite{smith2007introduction}.}
 	\label{fig:biquad-beispiel}
 \end{figure}
-Eine IIR-Implementierung muss die vergangenen Ein- und Ausgangswerte als Zustände speichern und bei jedem Sample aktualisieren. Für den Benchmark ist besonders relevant, dass diese Rückkopplung Datenabhängigkeiten erzeugt und die Vektorisierbarkeit gegenüber rein vorwärtsgerichteten Operationen einschränken kann. Entsprechend wird zwischen vektorisierbaren und skalaren Ausdrücken unterschieden; rekursive Filter bilden dabei einen wichtigen Sonderfall \parencite{scaringella:hal-02158949}.
+Eine IIR-Implementierung muss die vergangenen Ein- und Ausgangswerte als Zustände speichern und bei jedem Sample aktualisieren. Für den Benchmark ist besonders relevant, dass diese Rückkopplung Datenabhängigkeiten erzeugt und die Vektorisierbarkeit gegenüber rein vorwärtsgerichteten Operationen einschränken kann. Entsprechend wird zwischen vektorisierbaren und skalaren Ausdrücken unterschieden. Rekursive Filter bilden dabei einen wichtigen Sonderfall \parencite{scaringella:hal-02158949}.
 \subsection{FIR-Filter und Faltung}
 Ein Finite-Impulse-Response-Filter (FIR-Filter) besitzt keine Rückkopplung. Jedes Ausgangssample entsteht aus einer gewichteten Summe aktueller und vergangener Eingangssamples. Für eine Filterlänge $L$ gilt
 \begin{equation}
 	y[n] = \sum_{k=0}^{L-1} b_kx[n-k].
 \end{equation}
 \noindent Diese Differenzengleichung entspricht der direkten Faltungsimplementierung eines FIR-Filters \parencite{smith2007introduction}.
-Abbildung~\ref{fig:fir-beispiel} zeigt einen FIR-Tiefpass mit 31 Filterkoeffizienten (Taps) und einer Grenzfrequenz von $800~\mathrm{Hz}$. Das synthetische Eingangssignal enthält einen niederfrequenten Anteil bei 300 Hz sowie einen höherfrequenten Anteil bei 1800 Hz; der FIR-Filter dämpft den höherfrequenten Anteil.
+Abbildung~\ref{fig:fir-beispiel} zeigt einen FIR-Tiefpass mit 31 Filterkoeffizienten (Taps) und einer Grenzfrequenz von $800~\mathrm{Hz}$. Das synthetische Eingangssignal enthält einen niederfrequenten Anteil bei 300 Hz sowie einen höherfrequenten Anteil bei 1800 Hz. Der FIR-Filter dämpft den höherfrequenten Anteil.
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/fir.png}
@@ -106,7 +106,7 @@ Die Filterlänge ist für die Evaluation wesentlich: Sie erhöht sowohl die Zahl
 \section{Frequenzanalyse mit diskreter Fourier-Transformation (DFT) und Fast-Fourier-Transformation (FFT)}
 \label{sec:fft-grundlagen}
 \subsection{Zeitbereich, Frequenzbereich und DFT}
-Im Zeitbereich beschreibt ein digitales Signal seinen Amplitudenverlauf über dem Sample-Index. Im Frequenzbereich wird derselbe Signalabschnitt durch seine spektralen Komponenten dargestellt. Die diskrete Fourier-Transformation (DFT) ordnet einer endlichen Folge $x[n]$ der Länge $N$ komplexe Koeffizienten $X[k]$ zu:
+Im Zeitbereich beschreibt ein digitales Signal seinen Amplitudenverlauf über dem Sample-Index. Im Frequenzbereich wird derselbe Signalabschnitt durch seine spektralen Komponenten dargestellt \parencite[Kap.~4.1--4.2, S.~97--103]{tan2018digital}. Die diskrete Fourier-Transformation (DFT) ordnet einer endlichen Folge $x[n]$ der Länge $N$ komplexe Koeffizienten $X[k]$ zu:
 \begin{equation}
 	X[k] = \sum_{n=0}^{N-1} x[n] \cdot e^{-j2\pi kn/N},
 	\qquad k = 0, \ldots, N-1.
@@ -116,7 +116,7 @@ Der Betrag eines Koeffizienten beschreibt die Stärke der jeweiligen Frequenzkom
 \begin{equation}
 	\Delta f = \frac{f_s}{N}.
 \end{equation}
-Abbildung~\ref{fig:zeit-frequenz-vergleich} vergleicht Zeitbereich und Frequenzbereich anhand eines Einzeltons und eines Mischsignals.
+Abbildung~\ref{fig:zeit-frequenz-vergleich} vergleicht Zeitbereich und Frequenzbereich anhand eines Einzeltons und  Mischsignals.
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=\textwidth]{images/zeit_frequenz.png}
@@ -133,12 +133,12 @@ aufweist, reduziert eine radix-2-FFT den Aufwand auf
 \begin{equation}
 	O(N\log_2 N).
 \end{equation}
-\noindent Diese Beschleunigung ergibt sich aus der Rekursion der $N$-Punkt-DFT in kleinere Teiltransformationen; die asymptotischen Laufzeiten werden als Konsequenz dieser Zerlegung begründet \parencite[S.~127--134]{tan2018digital}.
-Die FFT-Größe stellt deshalb im Benchmark einen relevanten Skalierungsparameter dar: Sie verändert sowohl den theoretischen Rechenaufwand als auch die praktische Speicher- und Cache-Nutzung. Dieses Kapitel behandelt ausschließlich die Vorwärtstransformation, weil die Forschungsfrage einzelne FFT-Bausteine vergleicht; eine vollständige Short-Time-Fourier-Transform-(STFT)-Pipeline oder eine Overlap-Add-Pipeline ist nicht Teil dieses Grundlagenkapitels.
+\noindent Diese Beschleunigung ergibt sich aus der Rekursion der $N$-Punkt-DFT in kleinere Teiltransformationen. Die asymptotischen Laufzeiten werden als Konsequenz dieser Zerlegung begründet \parencite[S.~127--134]{tan2018digital}.
+Die FFT-Größe stellt deshalb im Benchmark einen relevanten Skalierungsparameter dar. Sie verändert sowohl den theoretischen Rechenaufwand als auch die praktische Speicher- und Cache-Nutzung \parencite[S.~127--134]{tan2018digital}. Dieses Kapitel behandelt ausschließlich die Vorwärtstransformation, weil die Forschungsfrage einzelne FFT-Bausteine vergleicht. Eine vollständige Short-Time-Fourier-Transform-(STFT)-Pipeline oder eine Overlap-Add-Pipeline ist nicht Teil dieses Grundlagenkapitels.
 \section{Performanzrelevante Implementierungsaspekte}
 \label{sec:performanzgrundlagen}
 \subsection{Compileroptimierung und automatische Vektorisierung}
-Die Laufzeit eines DSP-Kerns wird nicht allein durch seinen Algorithmus bestimmt, sondern auch durch die Codegenerierung und die Optimierungen des Compilers. Bei automatischer Vektorisierung versucht der Compiler, mehrere unabhängige skalare Operationen durch SIMD-Instruktionen zusammenzufassen. Für Faust existiert eine Analyse, die vektorisierbare Ausdrücke von Ausdrücken mit Datenabhängigkeiten trennt \parencite{scaringella:hal-02158949}. Diese Unterscheidung erklärt, warum Verstärkungsstufen und lange FIR-Strukturen andere Optimierungsmöglichkeiten besitzen können als rekursive Biquad-Filter.
+Die Laufzeit eines DSP-Kerns wird nicht allein durch seinen Algorithmus bestimmt, sondern auch durch die Codegenerierung und die Optimierungen des Compilers. Bei automatischer Vektorisierung versucht der Compiler, mehrere unabhängige skalare Operationen durch SIMD-Instruktionen zusammenzufassen. Für Faust existiert eine Analyse, die vektorisierbare Ausdrücke von Ausdrücken mit Datenabhängigkeiten trennt \parencite[S.~15]{orlarey:hal-02159014}. Diese Unterscheidung erklärt, warum Verstärkungsstufen und lange FIR-Strukturen andere Optimierungsmöglichkeiten besitzen können als rekursive Biquad-Filter.
 Die Arbeit vergleicht beide Implementierungen unter identischen Compiler- und Optimierungsbedingungen. Explizite SIMD-Intrinsics werden nicht eingesetzt, damit die Wirkung der automatischen Optimierung für Faust und C++ beobachtbar bleibt. Die konkrete Wahl von Compiler, Flags und Zielplattform wird erst im Versuchsdesign dokumentiert.
 \subsection{Messgrößen}
 Die zentrale Messgröße ist die Prozessorzeit pro Audioblock. Ergänzend werden Speicherverbrauch und Binärgröße erfasst, weil sie die praktische Einsetzbarkeit einer Implementierung neben der reinen Laufzeit beeinflussen. Codelänge und Implementierungskomplexität ergänzen den quantitativen Vergleich um Aspekte der Entwicklererfahrung. Die genaue Operationalisierung dieser Größen, die Zahl der Wiederholungen sowie die statistische Auswertung gehören in Kapitel~4.

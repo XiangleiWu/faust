@@ -1,0 +1,55 @@
+% ---------------------------------------------------------------------------
+% Abbildung: gemeinsame Test-Schnittstelle IDSPBlock
+% benötigt: \usepackage{tikz}
+%            \usetikzlibrary{arrows.meta,positioning,calc}
+% Einbinden mit: \input{figures/abb_schnittstelle}
+% ---------------------------------------------------------------------------
+\begin{figure}[htb]
+	\centering
+	\begin{tikzpicture}[
+		font=\footnotesize,
+		cls/.style   = {draw, rounded corners=2pt, align=left,
+			inner xsep=5pt, inner ysep=4pt, text width=44mm},
+		inh/.style   = {draw, -{Triangle[open, length=3mm, width=3mm]}},
+		note/.style  = {font=\scriptsize\itshape, align=center}
+		]
+		
+		% ---- abstrakte Schnittstelle -------------------------------------------
+		\node[cls, fill=black!14] (iface) at (0,0) {%
+			\textbf{\texttt{IDSPBlock}}\\[2pt]
+			\texttt{init(sampleRate)}\\
+			\texttt{compute(count, in, out)}\\
+			\texttt{getNumInputs()}\\
+			\texttt{getNumOutputs()}};
+		
+		% ---- die beiden Implementierungen --------------------------------------
+		\node[cls, fill=black!3] (faust) at (-3.4,-3.4) {%
+			\textbf{\texttt{FaustBiquad}}\\[2pt]
+			hält ein Objekt der vom\\
+			Faust-Compiler erzeugten\\
+			Klasse \texttt{BiquadDSP} und\\
+			reicht die Aufrufe weiter};
+		
+		\node[cls, fill=black!3] (native) at (3.4,-3.4) {%
+			\textbf{\texttt{NativeBiquad}}\\[2pt]
+			enthält die manuell\\
+			geschriebene Schleife\\
+			über die Samples\\
+			(Direktform~I)};
+		
+		\draw[inh] (faust.north)  -- ++(0,0.6) -| (iface.south);
+		\draw[inh] (native.north) -- ++(0,0.6) -| (iface.south);
+		
+		% ---- Nutzer der Schnittstelle ------------------------------------------
+		\node[draw, rounded corners=2pt, fill=black!14, align=center,
+		inner xsep=5pt, inner ysep=4pt] (user) at (0,2.0)
+		{Mess-, Genauigkeits- und Größenprogramme\\
+			arbeiten ausschließlich gegen \texttt{IDSPBlock}};
+		\draw[-{Stealth[length=2mm]}] (user) -- (iface);
+		
+	\end{tikzpicture}
+	\caption{Gemeinsame Test-Schnittstelle. Beide Varianten erben von derselben
+		abstrakten Klasse. Die Messprogramme kennen nur diese Schnittstelle und
+		können deshalb für beide Varianten unverändert verwendet werden.}
+	\label{fig:schnittstelle}
+\end{figure}

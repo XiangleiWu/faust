@@ -1,0 +1,88 @@
+% ---------------------------------------------------------------------------
+% Abbildung: Direktform I (manuell) gegenüber Direktform II (Faust)
+% benötigt: \usepackage{tikz}
+%            \usetikzlibrary{arrows.meta,positioning,calc}
+% Einbinden mit: \input{figures/abb_biquad_formen}
+% ---------------------------------------------------------------------------
+\begin{figure}[H]
+	\centering
+	
+	% ===== (a) Direktform I =====================================================
+	\begin{tikzpicture}[
+		>={Stealth[length=2mm]},
+		font=\footnotesize,
+		sum/.style = {draw, circle, inner sep=0pt, minimum size=6mm},
+		del/.style = {draw, rounded corners=2pt, fill=black!5,
+			inner xsep=5pt, inner ysep=4pt, align=center},
+		lbl/.style = {font=\scriptsize, inner sep=2.5pt}
+		]
+		\node        (x)  at (0  , 0) {$x[n]$};
+		\node[sum]   (s1) at (2.6, 0) {$+$};
+		\node[sum]   (s2) at (6.2, 0) {$+$};
+		\node        (y)  at (8.8, 0) {$y[n]$};
+		
+		\node[del] (dx) at (2.6,-1.7) {$x[n-1],\ x[n-2]$};
+		\node[del] (dy) at (6.2,-1.7) {$y[n-1],\ y[n-2]$};
+		
+		\draw[->] (x)  -- node[lbl, above] {$b_0$} (s1);
+		\draw[->] (s1) -- (s2);
+		\draw[->] (s2) -- (y);
+		
+		% Abgriffe in die Verzögerungsketten
+		\coordinate (xt) at (0.8,0);
+		\coordinate (yt) at (8.0,0);
+		\fill (xt) circle (1.2pt);
+		\fill (yt) circle (1.2pt);
+		\draw[->] (xt) |- (dx.west);
+		\draw[->] (yt) |- (dy.east);
+		
+		% Rueckfuehrung in die Addierer
+		\draw[->] (dx.north) -- node[lbl, right] {$b_1,\ b_2$}     (s1.south);
+		\draw[->] (dy.north) -- node[lbl, right] {$-a_1,\ -a_2$}   (s2.south);
+		
+		\node[font=\scriptsize\itshape] at (4.4,-2.8)
+		{(a) Direktform~I: zwei Verzögerungsketten, vier gespeicherte Werte};
+	\end{tikzpicture}
+	
+	\par\vspace{7mm}
+	
+	% ===== (b) Direktform II ====================================================
+	\begin{tikzpicture}[
+		>={Stealth[length=2mm]},
+		font=\footnotesize,
+		sum/.style = {draw, circle, inner sep=0pt, minimum size=6mm},
+		del/.style = {draw, rounded corners=2pt, fill=black!5,
+			inner xsep=5pt, inner ysep=4pt, align=center},
+		lbl/.style = {font=\scriptsize, inner sep=2.5pt}
+		]
+		\node      (x)  at (0  , 0) {$x[n]$};
+		\node[sum] (s1) at (2.4, 0) {$+$};
+		\node[sum] (s2) at (6.0, 0) {$+$};
+		\node      (y)  at (8.2, 0) {$y[n]$};
+		
+		\node[del] (dw) at (4.2,-1.7) {$w[n-1],\ w[n-2]$};
+		
+		\draw[->] (x)  -- (s1);
+		\draw[->] (s1) -- node[lbl, above] {$w[n]$}
+		node[lbl, below] {$b_0$} (s2);
+		\draw[->] (s2) -- (y);
+		
+		\coordinate (wt) at (4.2,0);
+		\fill (wt) circle (1.2pt);
+		\draw[->] (wt) -- (dw.north);
+		
+		\draw[->] (dw.west) -- node[lbl, above] {$-a_1,\ -a_2$} ++(-1.8,0) |- (s1.south);
+		\draw[->] (dw.east) -- node[lbl, above] {$b_1,\ b_2$}   ++( 1.8,0) |- (s2.south);
+		
+		\node[font=\scriptsize\itshape] at (4.2,-2.8)
+		{(b) Direktform~II: eine Verzögerungskette, zwei gespeicherte Werte};
+	\end{tikzpicture}
+	
+	\caption{Die beiden Formen des Biquad-Filters. Die manuelle Implementierung
+		folgt der Direktform~I, weil sie die Differenzengleichung wörtlich abbildet.
+		Die Faust-Bibliotheksfunktion \texttt{fi.tf2} ergibt die Direktform~II, weil
+		sich der Rückkopplungszweig dort als Rekursionsoperator und der
+		Vorwärtszweig als FIR-Filter ausdrücken lässt. Beide berechnen dasselbe
+		Ausgangssignal.}
+	\label{fig:biquad-formen}
+\end{figure}
