@@ -1,0 +1,161 @@
+% =====================================================================
+%  Abbildung 5.x  --  Biquad: Direktform I und II im Vergleich
+% =====================================================================
+\begin{figure}
+\centering
+
+% ------------------------- (a) Direktform I -------------------------
+\begin{subfigure}{\textwidth}
+\centering
+\begin{tikzpicture}
+  \def\rA{0.0} \def\rB{-1.35} \def\rC{-2.7}
+  \def\xc{1.3} \def\xb{3.0} \def\xs{4.7} \def\xa{6.6} \def\xy{8.3}
+
+  % --- Eingangskette (x) ---
+  \node[fsig] (in) at (-0.35,\rA) {$x[n]$};
+  \node[fd] (zx1) at (\xc,-0.675) {$z^{-1}$};
+  \node[fd] (zx2) at (\xc,-2.025) {$z^{-1}$};
+  \foreach \y in {\rA,\rB,\rC} { \node[fdot] at (\xc,\y) {}; }
+  \coordinate (cxA) at (\xc,\rA);  \coordinate (cxC) at (\xc,\rC);
+  \draw[fw] (in.east) -- (\xc,\rA);
+  \draw[fw] (\xc,\rA) -- (zx1.north);
+  \draw[fw] (zx1.south) -- (\xc,\rB);
+  \draw[fw] (\xc,\rB) -- (zx2.north);
+  \draw[fw] (zx2.south) -- (\xc,\rC);
+
+  % --- Vorwaertskoeffizienten ---
+  \node[fb] (b0) at (\xb,\rA) {$\times b_0$};
+  \node[fb] (b1) at (\xb,\rB) {$\times b_1$};
+  \node[fb] (b2) at (\xb,\rC) {$\times b_2$};
+
+  % --- Summierstellen ---
+  \node[fsum] (s0) at (\xs,\rA) {$+$};
+  \node[fsum] (s1) at (\xs,\rB) {$+$};
+  \node[fsum] (s2) at (\xs,\rC) {$+$};
+  \foreach \n/\y in {b0/\rA, b1/\rB, b2/\rC} { \draw[fw] (\xc,\y) -- (\n.west); }
+  \draw[fw] (b0.east) -- (s0.west);
+  \draw[fw] (b1.east) -- (s1.west);
+  \draw[fw] (b2.east) -- (s2.west);
+  \draw[fw] (s2.north) -- (s1.south);
+  \draw[fw] (s1.north) -- (s0.south);
+
+  % --- Ausgangskette (y) ---
+  \node[fb] (a1) at (\xa,\rB) {$\times(-a_1)$};
+  \node[fb] (a2) at (\xa,\rC) {$\times(-a_2)$};
+  \node[fd] (zy1) at (\xy,-0.675) {$z^{-1}$};
+  \node[fd] (zy2) at (\xy,-2.025) {$z^{-1}$};
+  \foreach \y in {\rA,\rB,\rC} { \node[fdot] at (\xy,\y) {}; }
+  \coordinate (cyA) at (\xy,\rA);  \coordinate (cyC) at (\xy,\rC);
+  \node[fsig] (out) at (9.9,\rA) {$y[n]$};
+
+  \draw[fw] (s0.east) -- (\xy,\rA);
+  \draw[fw] (\xy,\rA) -- (out.west);
+  \draw[fw] (\xy,\rA) -- (zy1.north);
+  \draw[fw] (zy1.south) -- (\xy,\rB);
+  \draw[fw] (\xy,\rB) -- (zy2.north);
+  \draw[fw] (zy2.south) -- (\xy,\rC);
+  \draw[fw] (\xy,\rB) -- (a1.east);
+  \draw[fw] (\xy,\rC) -- (a2.east);
+  \draw[fw] (a1.west) -- (s1.east);
+  \draw[fw] (a2.west) -- (s2.east);
+
+  \begin{scope}[on background layer]
+    \node[fgrpin, draw=none, fill=none,
+          fit=(zx1)(zx2)(cxA)(cxC)] (cxf) {};
+    \node[fgrpin, draw=none, fill=none,
+          fit=(zy1)(zy2)(cyA)(cyC)] (cyf) {};
+    \node[fgrp, fit=(in)(cxf)(s2)(a2)(cyf)(out)] (fr) {};
+    \node[fgrpin, inner sep=0pt, fit=(cxf)] (cx) {};
+    \node[fgrpin, inner sep=0pt, fit=(cyf)] (cy) {};
+  \end{scope}
+  \fgname{fr}{Direktform I -- zwei getrennte Verz\"ogerungsketten, vier gespeicherte Werte}
+  \node[fglab, anchor=north, text=black] at ([yshift=-1.1mm]cx.south) {Kette $x[n{-}k]$};
+  \node[fglab, anchor=north, text=black] at ([yshift=-1.1mm]cy.south) {Kette $y[n{-}k]$};
+\end{tikzpicture}
+\caption{Direktform~I: getrennte Ketten f\"ur Eingangs- und Ausgangswerte}
+\label{fig:biquad-df1}
+\end{subfigure}
+
+\vspace{6mm}
+
+% ------------------------- (b) Direktform II ------------------------
+\begin{subfigure}{\textwidth}
+\centering
+\begin{tikzpicture}
+  \def\rA{0.0} \def\rB{-1.35} \def\rC{-2.7}
+  \def\xt{1.6} \def\xa{3.1} \def\xw{5.0} \def\xb{6.8} \def\xu{8.5}
+
+  \node[fsig] (in) at (0.15,\rA) {$x[n]$};
+  \node[fsum] (t0) at (\xt,\rA) {$+$};
+  \node[fsum] (t1) at (\xt,\rB) {$+$};
+  \node[fsum] (t2) at (\xt,\rC) {$+$};
+  \draw[fw] (in.east) -- (t0.west);
+  \draw[fw] (t2.north) -- (t1.south);
+  \draw[fw] (t1.north) -- (t0.south);
+
+  % --- gemeinsame Verzoegerungskette (w) ---
+  \node[fd] (zw1) at (\xw,-0.675) {$z^{-1}$};
+  \node[fd] (zw2) at (\xw,-2.025) {$z^{-1}$};
+  \foreach \y in {\rA,\rB,\rC} { \node[fdot] at (\xw,\y) {}; }
+  \coordinate (cwA) at (\xw,\rA);  \coordinate (cwC) at (\xw,\rC);
+  \draw[fw] (t0.east) -- (\xw,\rA);
+  \draw[fw] (\xw,\rA) -- (zw1.north);
+  \draw[fw] (zw1.south) -- (\xw,\rB);
+  \draw[fw] (\xw,\rB) -- (zw2.north);
+  \draw[fw] (zw2.south) -- (\xw,\rC);
+  \node[flab, anchor=south] at (3.3,\rA+0.1) {$w[n]$};
+
+  % --- Rueckkopplungskoeffizienten (nach links) ---
+  \node[fb] (a1) at (\xa,\rB) {$\times(-a_1)$};
+  \node[fb] (a2) at (\xa,\rC) {$\times(-a_2)$};
+  \draw[fw] (\xw,\rB) -- (a1.east);
+  \draw[fw] (\xw,\rC) -- (a2.east);
+  \draw[fw] (a1.west) -- (t1.east);
+  \draw[fw] (a2.west) -- (t2.east);
+
+  % --- Vorwaertskoeffizienten (nach rechts) ---
+  \node[fb] (b0) at (\xb,\rA) {$\times b_0$};
+  \node[fb] (b1) at (\xb,\rB) {$\times b_1$};
+  \node[fb] (b2) at (\xb,\rC) {$\times b_2$};
+  \node[fsum] (u0) at (\xu,\rA) {$+$};
+  \node[fsum] (u1) at (\xu,\rB) {$+$};
+  \node[fsum] (u2) at (\xu,\rC) {$+$};
+  \node[fsig] (out) at (9.9,\rA) {$y[n]$};
+  \foreach \n/\y in {b0/\rA, b1/\rB, b2/\rC} { \draw[fw] (\xw,\y) -- (\n.west); }
+  \draw[fw] (b0.east) -- (u0.west);
+  \draw[fw] (b1.east) -- (u1.west);
+  \draw[fw] (b2.east) -- (u2.west);
+  \draw[fw] (u2.north) -- (u1.south);
+  \draw[fw] (u1.north) -- (u0.south);
+  \draw[fw] (u0.east) -- (out.west);
+
+  \begin{scope}[on background layer]
+    \node[fgrpin, draw=none, fill=none,
+          fit=(zw1)(zw2)(cwA)(cwC)] (cwf) {};
+    \node[fgrp, fit=(in)(t2)(a2)(cwf)(b2)(u2)(out)] (fr) {};
+    \node[fgrpin, inner sep=0pt, fit=(cwf)] (cw) {};
+  \end{scope}
+  \fgname{fr}{Direktform II -- eine gemeinsame Verz\"ogerungskette, zwei gespeicherte Werte}
+  \node[fglab, anchor=north, text=black] at ([yshift=-1.1mm]cw.south)
+       {gemeinsame Kette $w[n{-}k]$};
+\end{tikzpicture}
+\caption{Direktform~II: beide Zweige teilen sich dieselbe Kette}
+\label{fig:biquad-df2}
+\end{subfigure}
+
+\caption[Direktform I und II des Biquad-Filters]%
+{Die beiden Realisierungsformen des Biquad-Filters. Beide berechnen
+dieselbe \"Ubertragungsfunktion und liefern -- bis auf Rundung -- dasselbe
+Ausgangssignal, unterscheiden sich aber im Zustand. Die Direktform~I (a) ist
+die w\"ortliche \"Ubertragung der Differenzengleichung
+(Gleichung~\ref{eq:biquad}): Sie f\"uhrt eine eigene Kette f\"ur die
+vergangenen Eingangs- und eine zweite f\"ur die vergangenen Ausgangswerte und
+speichert deshalb vier Werte. Die Direktform~II (b) zieht die Rekursion vor
+und l\"asst beide Zweige auf dasselbe Zwischensignal $w$ zugreifen; sie
+kommt mit einer Kette und zwei gespeicherten Werten aus. Die manuelle
+Implementierung folgt der Form~(a) (Abb.~\ref{fig:biquad-df1}), die Faust-Bibliotheksfunktion
+\texttt{fi.tf2} erzeugt die Form~(b)
+(Abb.~\ref{fig:biquad-df2}). Die Verz\"ogerungsglieder sind zur
+Hervorhebung abgesetzt gezeichnet.}
+\label{fig:biquad-formen}
+\end{figure}

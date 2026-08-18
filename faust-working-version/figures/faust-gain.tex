@@ -1,0 +1,29 @@
+% =====================================================================
+%  Abbildung 5.x  --  Gain
+% =====================================================================
+\begin{figure}
+\centering
+\begin{tikzpicture}
+  \node[fui] (sl)  at (1.7, 0.75) {\texttt{hslider("gain")}};
+  \node[fsig](in)  at (0.0,-0.75) {$x[n]$};
+  \node[fb2] (mul) at (4.6, 0.0)  {$*$};
+  \node[fsig](out) at (6.5, 0.0)  {$y[n]$};
+
+  \draw[fw] (sl.east)  -- (3.80, 0.75) |- \pinA{mul};
+  \draw[fw] (in.east)  -- (3.45,-0.75) |- \pinB{mul};
+  \draw[fw] (mul.east) -- (out);
+
+  \begin{scope}[on background layer]
+    \node[fgrp, fit=(sl)(in)(mul)] (proc) {};
+  \end{scope}
+  \fgname{proc}{process}
+\end{tikzpicture}
+\caption[Faust-Blockdiagramm der Verst\"arkungsstufe]%
+{Verst\"arkungsstufe (\texttt{gain.dsp}). Beide Eing\"ange der
+Multiplikation liegen auf der linken Blockkante: das Audiosignal und das
+Bedienelement. Der Verst\"arkungsfaktor ist damit ein Signal und keine
+\"Ubersetzungszeitkonstante; er wird je Aufruf von \texttt{compute()} aus dem
+Objekt gelesen. Zwischen aufeinanderfolgenden Samples besteht keine
+Abh\"angigkeit.}
+\label{fig:faust-gain}
+\end{figure}

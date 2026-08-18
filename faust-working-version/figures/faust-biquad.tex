@@ -1,0 +1,49 @@
+% =====================================================================
+%  Abbildung 5.x  --  Biquad (fi.tf2)
+% =====================================================================
+\begin{figure}
+\centering
+\begin{tikzpicture}
+  \node[fsig](in)   at (0.0,-0.25) {$x[n]$};
+  \node[fb2] (sub)  at (2.8, 0.0)  {$-$};
+  \coordinate       (sp)  at (5.6, 0.0);
+  \node[fb]  (firb) at (7.8, 0.0)  {\texttt{fir}$(b_0,b_1,b_2)$};
+  \node[fsig](out)  at (10.2,0.0)  {$y[n]$};
+  \node[fb]  (fira) at (2.8,-1.9)  {\texttt{fir}$(a_1,a_2)$};
+  \node[fb]  (mem)  at (4.9,-1.9)  {\texttt{mem}};
+
+  \draw[fw] (in.east) -- \pinB{sub};
+  \draw[fplain] (sub.east) -- (sp);
+  \node[fdot] at (sp) {};
+  \node[flab, anchor=south] at (5.6,0.12) {$w[n]$};
+  \draw[fw] (sp) -- (firb.west);
+  \draw[fw] (firb.east) -- (out);
+
+  % Rueckkopplungszweig, gespiegelt gezeichnet (Eingang rechts, Ausgang links)
+  \draw[fw] (sp) -- (5.6,-1.9) -- (mem.east);
+  \draw[fw] (mem.west) -- (fira.east);
+  \coordinate (jog) at (1.95,-1.9);
+  \draw[fw] (fira.west) -- (jog) |- \pinA{sub};
+
+  \begin{scope}[on background layer]
+    \node[fgrpin, draw=none, fill=none,
+          fit=(sub)(fira)(mem)(sp)(jog)]         (recf) {};
+    \node[fgrp,   fit=(in)(recf)(firb)]          (proc) {};
+    \node[fgrpin, inner sep=0pt, fit=(recf)]     (rec)  {};
+  \end{scope}
+  \fgname{proc}{process = fi.tf2(\ldots)}
+  \fgname{rec}{sub \textasciitilde{} fir($a_1,a_2$)}
+\end{tikzpicture}
+\caption[Faust-Blockdiagramm des Biquad-Filters]%
+{Biquad-Filter (\texttt{biquad.dsp}, \texttt{fi.tf2}). Die
+Bibliotheksfunktion ist eine sequenzielle Komposition aus einem
+Rekursionsblock und einem FIR-Block:
+\texttt{sub \textasciitilde{} fir(a1,a2) : fir(b0,b1,b2)}. Beide greifen auf
+dasselbe Zwischensignal~$w$ zu, weshalb nur eine Verz\"ogerungskette
+entsteht -- das ist die Direktform~II. Die Direktform~I der manuellen
+Implementierung (Abb.~\ref{fig:biquad-formen}) lie\ss{}e sich so nicht
+ausdr\"ucken, weil ihr Vorw\"artszweig \"uber das Eingangs- und ihr
+R\"uckkopplungszweig \"uber das Ausgangssignal l\"auft und sie deshalb zwei
+getrennte Ketten ben\"otigt.}
+\label{fig:faust-biquad}
+\end{figure}

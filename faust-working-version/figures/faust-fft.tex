@@ -1,0 +1,80 @@
+% =====================================================================
+%  Abbildung 5.x  --  FFT
+% =====================================================================
+\begin{figure}[b]
+\centering
+
+\begin{subfigure}{\textwidth}
+\centering
+\begin{tikzpicture}
+  \node[fsig](in)  at (0.0,0)  {$x[n]$};
+  \node[fb, minimum height=16mm] (rt)  at (2.6,0) {\texttt{an.rtocv}$(N)$};
+  \node[fb, minimum height=16mm] (fft) at (6.4,0) {\texttt{an.fft}$(N)$};
+  \node[fsig](out) at (9.6,0)  {$X_0^{\mathrm{re}},X_0^{\mathrm{im}},\dots,X_{N-1}^{\mathrm{im}}$};
+
+  \draw[fw] (in.east) -- (rt.west);
+  \foreach \y in {0.55,0.3,-0.3,-0.55} {
+    \draw[fw] ($(rt.east)+(0,\y)$)  -- ($(fft.west)+(0,\y)$);
+    \draw[fw] ($(fft.east)+(0,\y)$) -- ($(out.west)+(-1mm,\y)$);
+  }
+  \node[font=\tiny] at (4.5, 0.02) {$\vdots$};
+  \node[font=\tiny] at (8.0, 0.02) {$\vdots$};
+  \node[flab] at (4.5, 0.78) {$2N$};
+  \node[flab] at (8.0,-0.78) {$2N$};
+
+  \begin{scope}[on background layer]
+    \node[fgrp, fit=(in)(rt)(fft)] (proc) {};
+  \end{scope}
+  \fgname{proc}{process = an.rtocv(N) : an.fft(N)}
+\end{tikzpicture}
+\caption{Gesamtstruktur: ein Eingang, $2N$ Ausg\"ange}
+\end{subfigure}
+
+\vspace{5mm}
+
+\begin{subfigure}{\textwidth}
+\centering
+\begin{tikzpicture}
+  \node[fsig](a)  at (0.0, 0.0)  {$A$};
+  \node[fsig](b)  at (0.0,-1.4)  {$B$};
+  \node[fb]  (w)  at (1.6,-1.4)  {$*(W_N^{\,k})$};
+  \node[fb2] (pa) at (4.6, 0.0)  {$+$};
+  \node[fb2] (pb) at (4.6,-1.4)  {$-$};
+  \node[fsig](oa) at (6.5, 0.0)  {$A + W_N^{\,k}B$};
+  \node[fsig](ob) at (6.5,-1.4)  {$A - W_N^{\,k}B$};
+
+  \draw[fplain] (a.east) -- (2.7,0.0);
+  \node[fdot] at (2.7,0.0) {};
+  \draw[fw] (2.7,0.0) |- \pinA{pa};
+  \draw[fw] (2.7,0.0) |- \pinA{pb};
+
+  \draw[fw] (b.east) -- (w.west);
+  \draw[fplain] (w.east) -- (3.3,-1.4);
+  \node[fdot] at (3.3,-1.4) {};
+  \draw[fw] (3.3,-1.4) |- \pinB{pa};
+  \draw[fw] (3.3,-1.4) |- \pinB{pb};
+
+  \draw[fw] (pa.east) -- (oa.west);
+  \draw[fw] (pb.east) -- (ob.west);
+
+  \begin{scope}[on background layer]
+    \node[fgrpin, fit=(a)(b)(w)(pa)(pb)] (bf) {};
+  \end{scope}
+  \fgname{bf}{Butterfly}
+\end{tikzpicture}
+\caption{Elementare Butterfly-Operation; $\log_2 N$ Stufen zu je $N/2$ St\"uck}
+\end{subfigure}
+
+\caption[Faust-Blockdiagramm der FFT]%
+{FFT (\texttt{fft.dsp}). \texttt{an.rtocv} bildet aus dem Eingangssignal ein
+gleitendes Fenster der L\"ange $N$ und serialisiert es -- mit dem neuesten
+Sample zuerst -- als $2N$ Signale, in denen Real- und Imagin\"arteil
+abwechseln. \texttt{an.fft} transformiert dieses Fenster. Anders als beim
+FIR-Filter ist die innere Struktur in Faust nicht als Schleife formuliert,
+sondern als Blockdiagramm aus $\log_2 N$ Stufen zu je $N/2$ Butterflies, das
+der Compiler vollst\"andig ausrollt. F\"ur $N = 256$ sind das $1024$
+Butterflies je Ausgangssample. Darin liegt der wesentliche Unterschied zur
+manuellen Implementierung, die dieselbe Struktur in verschachtelten
+Schleifen durchl\"auft.}
+\label{fig:faust-fft}
+\end{figure}

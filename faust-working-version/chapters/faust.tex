@@ -1,4 +1,5 @@
 \chapter{Faust: Functional Audio Stream}
+\label{cha:faust}
 \section{Einführung}
 
 FAUST (Functional Audio Stream) ist eine domänenspezifische Programmiersprache für die Audio-Signalverarbeitung. Sie ist als effiziente Ergänzung zu C/C++ für Signalverarbeitungsbibliotheken, Audio-Plug-ins und eigenständige Anwendungen konzipiert \parencite{orlarey:hal-02159014}.
@@ -17,7 +18,7 @@ Die Besonderheit von FAUST liegt in der formalen Semantik: Jedes Programm beschr
 
 FAUST kombiniert funktionale Programmierung mit Blockdiagrammen. Digitale Signale werden als diskrete Funktionen der Zeit modelliert. Signalprozessoren verarbeiten diese Signale, und Kompositionsoperatoren verbinden mehrere Signalprozessoren zu größeren Blockdiagrammen \parencite[S.~3--4]{orlarey:hal-02159014}.
 	
-Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor \ref{prog:faust-minimal} zeigt drei minimale Definitionen.
+Ein FAUST-Programm beschreibt keinen Klang, sondern einen Signalprozessor, also eine Maschine mit Eingängen und Ausgängen. Das Schlüsselwort \texttt{process} definiert diesen Signalprozessor. Programm~\ref{prog:faust-minimal} zeigt drei minimale Definitionen.
 
 
 
@@ -61,8 +62,10 @@ Tabelle~\ref{tab:faust-operatoren} fasst die fünf Kompositionsoperatoren der FA
 \centering
 \includegraphics[width=\textwidth]{figures/abb_faust_operatoren}
 \caption{Die fünf Kompositionsoperatoren der Faust-Blockdiagramm}
-\label{abb:faust-operatoren}
+\label{fig:faust-operatoren}
 \end{figure}
+
+Abbildung~\ref{fig:faust-operatoren} stellt dieselben Operatoren als Blockdiagramme dar.
 
 Beispiel für sequenzielle Komposition: \texttt{process = + : abs;} verbindet die Ausgabe einer Addition mit einem Absolutwert.  \parencite[S. 4]{orlarey:hal-02159014}
 

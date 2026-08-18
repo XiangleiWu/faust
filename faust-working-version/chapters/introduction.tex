@@ -1,20 +1,19 @@
 \chapter{Einleitung}
-\label{cha:einleitung}
-\section{Motivation und Problemstellung}
-Die digitale Signalverarbeitung (Digital Signal Processing, DSP) ist ein wichtiges Anwendungsfeld in der Informatik besonderen Wert. \textcite{ifeachor2002digital} nennen
-unter anderem Anwendungen in der Telekommunikation, Audiotechnik,
-Sprachverarbeitung und Medizintechnik. In diesen Anwendungsbereichen sind
+\label{sec:introduction}
+Die digitale Signalverarbeitung (Digital Signal Processing, DSP) ist ein wichtiges Anwendungsfeld in der Informatik. Besonderen Stellenwert hat sie
+Sie findet unter anderem Anwendung in der Telekommunikation, Audiotechnik,
+Sprachverarbeitung und Medizintechnik \parencite{ifeachor2002digital}. In diesen Anwendungsbereichen sind
 Laufzeiteffizienz, deterministische Latenz und numerische Präzision von
 besonderer Bedeutung.
 
 DSP-Algorithmen werden traditionell in C oder C++ implementiert, unter
-anderem wegen des direkten Hardwarezugriffs und der hochoptimierten Codeerzeugung \parencite{levine1997dsp101}.
+unter anderem wegen des direkten Hardwarezugriffs und der stark optimierten Codeerzeugung \parencite{levine1997dsp101}.
 
 Die manuelle Übertragung mathematischer
-Modelle in ausführbaren Code ist jedoch aufwendig und erschwert die Portierung
-auf unterschiedliche Zielplattformen. Daraus kristallisierten sich in den letzten zwei Jahrzehnten domänspezifische Sprachen (Domain-Specific Languages, DSLs) für die Audio-Signalverarbeitung, welches durch Abstraktion und Code-Generierung die Probleme bewältigen soll. \parencite[S.~2--6]{orlarey:hal-02159014}
+Modelle in ausführbaren Code ist jedoch mit erheblichem Aufwand verbunden und erschwert die Portierung
+auf unterschiedliche Zielplattformen. In den letzten zwanzig Jahren wurden daher domänenspezifische Sprachen (Domain-Specific Languages, DSLs) für die Audio-Signalverarbeitung entwickelt, die durch Abstraktion und Code-Generierung diese Herausforderungen adressieren sollen. \\parencite[S. 2-6]{orlarey:hal-02159014}
 
-\textcite{orlarey:hal-02159014} beschreiben die domänenspezifische Sprache FAUST (Functional Audio Stream), entwickelt am GRAME in Lyon, als eine funktionale, blockbasierte Programmiersprache, die speziell für Audio-DSP entworfen wurde. Programme werden als algebraische Komposition von Signalverarbeitungsoperatoren formuliert. Die aktuelle FAUST-Dokumentation beschreibt die Codegenerierung für mehrere
+\textcite{orlarey:hal-02159014} beschreibt die domänenspezifische Sprache FAUST (Functional Audio Stream), die am GRAME in Lyon entwickelt wurde, als eine funktionale, blockbasierte Programmiersprache. Sie wurde speziell für Audio-DSP entwickelt. Programme bestehen aus einer algebraischen Kombination von Signalverarbeitungsoperatoren. Die aktuelle FAUST-Dokumentation beschreibt die Codegenerierung für mehrere
 Zielsprachen und Zielplattformen, darunter C++, Rust, JavaScript und
 WebAssembly \parencite{faust_manual}. Sie dokumentiert zudem
 Architekturdateien, mit denen aus einer FAUST-Quellbeschreibung unter anderem
@@ -38,17 +37,18 @@ Zusätzlich vergleicht die Studie
 die CPU-Last von Pure-Data-Plug-ins, die auf STK-C++-Code beziehungsweise
 FAUST-generiertem Code basieren \parencite[Tab.~2, S.~6]{michon2011fauststk}.
 
-Für die praktische Eignung muss der durch FAUST generierte Code sowohl funktional korrekt als auch laufzeiteffizient sein. 
+Für die praktische Eignung ist es erforderlich, dass der durch FAUST generierte Code sowohl funktional korrekt als auch laufzeiteffizient ist.
 \textcite{scaringella:hal-02158949} thematisieren die automatische Vektorisierung, während \textcite{letz:hal-02158924} Möglichkeiten der Parallelisierung im FAUST-Umfeld behandeln. 
 Die FAUST-Dokumentation verweist zudem auf Optimierungen, die den vollständigen Signalfluss berücksichtigen \parencite{orlarey:hal-02159014}. Diese Eigenschaften lassen jedoch keine allgemeine Aussage darüber zu, ob FAUST-generierter C++-Code einer manuell implementierten C++-Referenz bei konkreten DSP-Bausteinen überlegen, gleichwertig oder unterlegen ist.
 
 Direkte Vergleiche liegen für zeitbereichsbasierte Algorithmen vor. Für den Reverb-Algorithmus \emph{Freeverb} berichten \textcite{orlarey:hal-02159014} Benchmarkergebnisse, deren Ausprägung von Compiler und
-Codegenerierungsstrategie abhängt. Die in dieser Arbeit berücksichtigte Vergleichsliteratur untersucht überwiegend zeitbereichsbasierte Algorithmen wie Reverbs, Delays und physikalische Modelle. Ein Vergleich FFT-bezogener Bausteine wird daher ergänzend untersucht.
+Codegenerierungsstrategie abhängt. Die in der vorliegenden Arbeit berücksichtigte Vergleichsliteratur untersucht überwiegend zeitbereichsbasierte Algorithmen wie Reverbs, Delays und physikalische Modelle. Ergänzend wird daher ein Vergleich FFT-bezogener Bausteine durchgeführt.
 Für einen fairen Vergleich folgen beide Implementierungen demselben algorithmischen Ablauf und werden über eine gemeinsame Schnittstelle in die Benchmark-Infrastruktur eingebunden. Auf explizit programmierte Single-Instruction-Multiple-Data-Intrinsics (SIMD-Intrinsics) wird verzichtet.
-Die automatische Vektorisierung des Compilers bleibt für beide Varianten aktiv.
+Die automatische Vektorisierung des Compilers bleibt in beiden Varianten aktiv.
 
 \section{Forschungsfrage und Zielsetzung}
-In der vorliegende Arbeit wird untersucht, wie sich FAUST-generierter C++-Code gegenüber einer manuell implementierten C++-Referenz bei elementaren DSP-Bausteinen verhält. In Betracht gezogen Bausteine: eine Verstärkungsstufe (Gain-Stufe), ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) unterschiedlicher Länge sowie FFTs unterschiedlicher Größe. Reproduzierbaren Vergleiche mit unterschiedlichen Datenabhängigkeiten -und Skalierungseigenschaften sind die Anforderungen. Neben der Laufzeit werden Speicherverbrauch und Binärgröße betrachtet. Ergänzend werden Codelänge und Implementierungskomplexität analysiert.
+\label{sec:forschungsfrage}
+Diese Arbeit untersucht das Verhalten von FAUST-generiertem C++-Code im Vergleich zu einer manuell implementierten C++-Referenz für grundlegende DSP-Bausteine. Berücksichtigt werden eine Gain-Stufe, ein Biquad-Filter, Finite-Impulse-Response-Filter (FIR-Filter) verschiedener Längen sowie FFTs unterschiedlicher Größen. Die Anforderungen umfassen reproduzierbare Vergleiche unter unterschiedlichen Datenabhängigkeiten und Skalierungseigenschaften. Neben der Laufzeit werden auch Speicherverbrauch und Binärgröße analysiert. Zusätzlich erfolgt eine Analyse der Codelänge und Implementierungskomplexität.
 
 Die übergeordnete Forschungsfrage lautet:
 \begin{quote}
@@ -73,21 +73,23 @@ Zur Beantwortung dieser Forschungsfrage werden folgende Teilfragen untersucht:
 
 
 \section{Aufbau der Arbeit}
-Die Bachelorarbeit ist in acht Kapitel gegliedert. Sie umfasst die theoretischen Grundlagen, die Beschreibung von FAUST, das Versuchsdesign, die Implementierung der Benchmark-Kerne, die Evaluation sowie die Einordnung der Ergebnisse.
+Die Bachelorarbeit gliedert sich in acht Kapitel. Sie behandelt die theoretischen Grundlagen, die Beschreibung von FAUST, das Versuchsdesign, die Implementierung der Benchmark-Kerne, die Evaluation und die Einordnung der Ergebnisse.
 
-Nach dieser Einleitung vermittelt Kapitel~2 die für die Arbeit relevanten Grundlagen der digitalen Signalverarbeitung. Dazu gehören Audio-DSP, Verstärkungsstufen, rekursive Filter und FIR-Filter, die Fast-Fourier-Transformation sowie Anforderungen an Echtzeitverarbeitung.
+Nach dieser Einleitung vermittelt Kapitel~\ref{cha:grundlagen} die für die Arbeit relevanten Grundlagen der digitalen Signalverarbeitung. Dazu gehören Audio-DSP, Verstärkungsstufen, rekursive Filter und FIR-Filter, die Fast-Fourier-Transformation sowie Anforderungen an Echtzeitverarbeitung.
 
-Kapitel~3 stellt die domänenspezifische Sprache FAUST vor. Es erläutert die funktionale Syntax und Semantik, die zugrunde liegende Compiler-Architektur sowie die für die Arbeit relevanten Codegenerierungs-Backends.
+Kapitel~\ref{cha:faust} stellt die domänenspezifische Sprache FAUST vor. Es erläutert die funktionale Syntax und Semantik, die zugrunde liegende Compiler-Architektur sowie die für die Arbeit relevanten Codegenerierungs-Backends.
 
-Kapitel~4 beschreibt das Versuchsdesign und die Benchmark-Methodik. Es definiert die untersuchten DSP-Bausteine, die Messgrößen, die Zielplattformen, die Compilerkonfigurationen und die Maßnahmen zur Sicherung reproduzierbarer Messungen.
 
-Kapitel~5 dokumentiert die praktische Umsetzung der FAUST- und C++-Varianten. Neben den DSP-Bausteinen werden die gemeinsame Schnittstelle, das Build-System und die Maßnahmen zur Gewährleistung einer fairen Vergleichsbasis beschrieben.
+Kapitel~\ref{chap:versuchsdesign} beschreibt das Versuchsdesign und die Benchmark-Methodik. Es definiert die untersuchten DSP-Bausteine, die Messgrößen, die Zielplattformen, die Compilerkonfigurationen und die Maßnahmen zur Sicherung reproduzierbarer Messungen.
 
-Kapitel~6 enthält die Evaluation. Die Ergebnisse der Mikrobenchmarks werden hinsichtlich Laufzeit, Speicherverbrauch und Binärgröße ausgewertet. Zusätzlich werden Skalierungseffekte durch unterschiedliche Blockgrößen, Filterlängen und FFT-Größen sowie der Einfluss von Compileroptimierungen analysiert. Im Anschluss wird die Erfahrung mit der Handhabung von FAUST bewertet.
 
-Kapitel~7 diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage. Dabei werden Limitationen des Versuchsaufbaus, Bedrohungen der Validität und sowie die Codelänge und
+Kapitel~\ref{cha:implementierung} dokumentiert die praktische Umsetzung der FAUST- und C++-Varianten. Neben den DSP-Bausteinen werden die gemeinsame Schnittstelle, das Build-System und die Maßnahmen zur Gewährleistung einer fairen Vergleichsbasis beschrieben.
+
+
+Kapitel~\ref{cha:evaluation} enthält die Evaluation. Die Ergebnisse der Mikrobenchmarks werden hinsichtlich Laufzeit, Speicherverbrauch und Binärgröße ausgewertet. Zusätzlich werden Skalierungseffekte durch unterschiedliche Blockgrößen, Filterlängen und FFT-Größen sowie der Einfluss von Compileroptimierungen analysiert. Im Anschluss wird die Erfahrung mit der Handhabung von FAUST bewertet.
+
+
+Kapitel~\ref{cha:diskussion} diskutiert die Ergebnisse im Hinblick auf die Forschungsfrage. Dabei werden Limitationen des Versuchsaufbaus, Bedrohungen der Validität und sowie die Codelänge und
 Implementierungskomplexität analysiert.
 
-Kapitel~8 fasst die zentralen Ergebnisse zusammen und gibt einen Ausblick auf mögliche Erweiterungen, etwa die Untersuchung vollständiger DSP-Pipelines oder weiterer Zielplattformen.
-
-
+Kapitel~\ref{cha:zusammenfassung} fasst die zentralen Ergebnisse zusammen und gibt einen Ausblick auf mögliche Erweiterungen, etwa die Untersuchung vollständiger DSP-Pipelines oder weiterer Zielplattformen.

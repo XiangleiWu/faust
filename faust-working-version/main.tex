@@ -1,3 +1,4 @@
+% !TeX document-id = {ba72f7d3-ad9d-4165-b71c-ec1bd6770104}
 %%% File encoding: UTF-8
 %%% äöüÄÖÜß  <-- no German umlauts here? Use an UTF-8 compatible editor!
 
@@ -13,7 +14,9 @@
 \addbibresource{references.bib}
 \graphicspath{{images/}}  % Location of images and graphics
 \logofile{logo}           % Logo file: images/logo.pdf (no logo: \logofile{})
-\usepackage{tikz, caption, pdfpages}
+\usepackage{tikz, tabularx, booktabs,ragged2e, caption,xcolor,subcaption, pdfpages}
+
+
 \lstdefinelanguage{Faust}{
 	morekeywords={process,import,with,declare,library,component,environment},
 	sensitive=true,
@@ -31,7 +34,8 @@
 \begin{document}
 %%%-----------------------------------------------------------------------------
 
-\usetikzlibrary{positioning, arrows.meta}
+\usetikzlibrary{positioning,calc,arrows.meta,fit,backgrounds,decorations.markings}
+\input{figures/faust-diagramm-stile}
 %%%-----------------------------------------------------------------------------
 % Title page entries
 %%%-----------------------------------------------------------------------------

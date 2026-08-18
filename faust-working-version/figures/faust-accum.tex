@@ -1,0 +1,41 @@
+% =====================================================================
+%  Abbildung 5.x  --  Akkumulator
+% =====================================================================
+\begin{figure}
+\centering
+\begin{tikzpicture}
+  \node[fsig](in)  at (0.0,-0.25) {$x[n]$};
+  \node[fb2] (add) at (3.2, 0.0)  {$+$};
+  \coordinate      (sp)  at (5.0, 0.0);
+  \node[fsig](out) at (6.8, 0.0)  {$y[n]$};
+  \node[fb]  (mem) at (4.3,-1.7)  {\texttt{mem}};
+
+  \draw[fw] (in.east) -- \pinB{add};
+  \draw[fplain] (add.east) -- (sp);
+  \node[fdot] at (sp) {};
+  \draw[fw] (sp) -- (out);
+
+  % Rueckkopplung: der rekursive Teil ist gespiegelt (Eingang rechts)
+  \draw[fw] (sp) -- (5.0,-1.7) -- (mem.east);
+  \coordinate (jog) at (2.35,-1.7);
+  \draw[fw] (mem.west) -- (jog) |- \pinA{add};
+  \node[flab, anchor=south] at (3.0,-1.62) {$y[n-1]$};
+
+  \begin{scope}[on background layer]
+    \node[fgrpin, draw=none, fill=none, fit=(add)(mem)(sp)(jog)] (recf) {};
+    \node[fgrp,   fit=(in)(recf)]                (proc) {};
+    \node[fgrpin, inner sep=0pt, fit=(recf)]     (rec)  {};
+  \end{scope}
+  \fgname{proc}{process}
+  \fgname{rec}{+ \textasciitilde{} \_}
+\end{tikzpicture}
+\caption[Faust-Blockdiagramm des Akkumulators]%
+{Akkumulator (\texttt{accum.dsp}, \texttt{process = + \textasciitilde{} \_;}).
+Der innere Rahmen ist die rekursive Komposition. Wie in der
+Faust-Darstellung \"ublich ist der r\"uckgekoppelte Teil gespiegelt
+gezeichnet: Sein Eingang liegt rechts, sein Ausgang links, sodass der Draht
+die Schleife schlie\ss{}t. Faust f\"ugt die Verz\"ogerung um ein Sample implizit
+ein; sie ist hier als \texttt{mem} sichtbar gemacht. Die R\"uckkopplung ist
+der einzige Inhalt des Bausteins, Koeffizienten kommen nicht vor.}
+\label{fig:faust-accum}
+\end{figure}

@@ -1,0 +1,82 @@
+% =====================================================================
+%  Stildefinitionen fuer die Faust-Blockdiagramme (Kapitel 5)
+%  Darstellung angelehnt an die Ausgabe von "faust -svg":
+%    - alle Primitive als Rechtecke (auch + - * ), nicht als Kreise
+%    - Ein-/Ausgangsports auf den Blockkanten
+%    - orthogonale Draehte mit Pfeilspitze in der Drahtmitte
+%    - verschachtelte Rahmen fuer Kompositionsebenen
+%    - rekursive Teilbloecke gespiegelt (Eingang rechts, Ausgang links)
+%
+%  EINBINDEN:  in die PRAEAMBEL der Arbeit:
+%      \input{abb/faust-diagramm-stile}
+%
+%  WICHTIG -- VOR DER ABGABE PRUEFEN:
+%  Die innere Struktur von fi.tf2, fi.fir und an.fft ist aus den
+%  Definitionen der Faust-Standardbibliothek (filters.lib, analyzers.lib)
+%  rekonstruiert. Verifiziere sie gegen die von deinem Compiler tatsaechlich
+%  erzeugten Diagramme:
+%
+%      faust -svg dsp/biquad.dsp   &&  xdg-open biquad-svg/process.svg
+%      faust -svg dsp/fir32.dsp
+%      faust -svg dsp/fft.dsp
+%
+%  Weicht etwas ab, gilt die Ausgabe von faust -svg -- sie stammt aus der
+%  Version 2.83.1, die auch die gemessenen Klassen erzeugt hat.
+% =====================================================================
+
+% ---------------------------------------------------------------------
+% (1) IN DIE PRAEAMBEL DER ARBEIT
+% ---------------------------------------------------------------------
+%
+%   \usepackage{tikz}
+%   \usetikzlibrary{positioning,calc,arrows.meta,fit,backgrounds,
+%                   decorations.markings}
+%   \usepackage{xcolor}
+%   \usepackage{subcaption}      % nur fuer die FFT-Abbildung
+%
+% ---------------------------------------------------------------------
+% (2) STILDEFINITIONEN -- ebenfalls in die Praeambel
+% ---------------------------------------------------------------------
+
+% Fuer reinen Schwarzweissdruck: die drei Fuellfarben auf "white" setzen.
+\definecolor{fbxfill} {RGB}{214,230,246}   % Primitive und Bibliotheksbloecke
+\definecolor{fuifill} {RGB}{252,235,203}   % Bedienelemente
+\definecolor{fdelfill}{RGB}{247,221,221}   % Verzoegerungsglieder
+\definecolor{fgrpfill}{RGB}{248,248,248}   % Kompositionsrahmen
+\definecolor{fgrpline}{RGB}{130,130,130}
+
+\tikzset{
+  % Draht mit Pfeilspitze in der Drahtmitte (wie faust -svg)
+  fw/.style       = {semithick,
+                     decoration={markings, mark=at position #1 with
+                       {\arrow{Latex[length=1.5mm,width=1.3mm]}}},
+                     postaction={decorate}},
+  fw/.default     = 0.6,
+  fplain/.style   = {semithick},
+  % Bloecke
+  fb/.style       = {draw, semithick, fill=fbxfill, inner xsep=4pt,
+                     inner ysep=2pt, minimum height=7mm, minimum width=9mm,
+                     font=\small, align=center},
+  fb2/.style      = {fb, minimum height=10mm},   % Block mit zwei Eingaengen
+  fd/.style       = {fb, fill=fdelfill},        % Verzoegerungsglied
+  fsum/.style     = {fb, minimum width=7mm, minimum height=7mm,
+                     inner sep=1pt},            % Summierstelle
+  fui/.style      = {draw, semithick, fill=fuifill, inner xsep=4pt,
+                     inner ysep=2pt, minimum height=7mm, font=\footnotesize},
+  % Kompositionsrahmen
+  fgrp/.style     = {draw=fgrpline, thin, fill=fgrpfill, inner sep=4.5mm},
+  fgrpin/.style   = {draw=fgrpline, thin, densely dashed, fill=white,
+                     inner sep=2.4mm},
+  fglab/.style    = {font=\tiny\itshape, text=fgrpline, inner sep=1pt},
+  fsig/.style     = {font=\small, inner sep=1.5pt},
+  flab/.style     = {font=\footnotesize, inner sep=2pt},
+  fdot/.style     = {circle, fill, inner sep=0pt, minimum size=2.2pt},
+}
+
+% Kurzform fuer die beiden Eingangsports eines Blocks mit zwei Eingaengen
+\newcommand{\pinA}[1]{($(#1.west)+(0,2.5mm)$)}   % oberer  Eingang
+\newcommand{\pinB}[1]{($(#1.west)+(0,-2.5mm)$)}  % unterer Eingang
+
+% Rahmenbeschriftung oberhalb der linken oberen Ecke
+\newcommand{\fgname}[2]{\node[fglab, anchor=south west]
+  at ([xshift=0.8mm,yshift=0.3mm]#1.north west) {#2};}

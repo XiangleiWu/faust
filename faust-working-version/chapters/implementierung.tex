@@ -3,14 +3,15 @@
 
 Dieses Kapitel beschreibt, wie diese Festlegungen im Quelltext umgesetzt sind. Es zeigt die Faust-Beschreibungen und die manuellen C++-Implementierungen der fünf Bausteine, die gemeinsame Schnittstelle, über die beide Varianten beschrieben werden, den Aufbau des Build-Systems sowie die Maßnahmen, die eine faire Vergleichsbasis herstellen und die Gleichwertigkeit beider Varianten nachweisen. Die Messergebnisse selbst folgen in Kapitel~\ref{cha:evaluation}.
 
-Abbildung~\ref{fig:pipeline} zeigt den Weg, den beide Varianten nehmen, Aus der Faust-Quellbeschreibung erzeugt der Faust-Compiler eine C++-Klasse. Ein Wrapper bindet diese Klasse an dieselbe Schnittstelle an, die auch die manuelle Implementierung erfüllt. Ab dieser Schnittstelle unterscheiden sich die beiden Varianten nicht mehr. Sie werden vom selben Messprogramm, mit denselben Testdaten und mit denselben Compilerflags verarbeitet. 
+Abbildung~\ref{fig:pipeline} zeigt den Weg, den beide Varianten nehmen. Aus der Faust-Quellbeschreibung erzeugt der Faust-Compiler eine C++-Klasse. Ein Wrapper bindet diese Klasse an dieselbe Schnittstelle an, die auch die manuelle Implementierung erfüllt. Ab dieser Schnittstelle unterscheiden sich die beiden Varianten nicht mehr. Sie werden vom selben Messprogramm, mit denselben Testdaten und mit denselben Compilerflags verarbeitet. 
 
 \input{figures/abb_pipeline}
 
-\section{Umsetzung der FAUST- und C++-Code}
+\section{Umsetzung des FAUST- und C++-Code}
 \label{sec:umsetzung}
 
-Das Projekt trennt die beiden Varianten in eigene Verzeichnisse auf. Die Faust-Quellbeschreibungen liegen in \texttt{dsp/}, die zugehörigen Wrapper in \texttt{src/faust/} und die manuellen Implementierungen in \texttt{src/native}. Tabelle~\ref{tab:dateien} ordnet jedem Baustein aus Abschitt~\ref{sec:dsp-bausteine} die beiden Dateien zu.
++Das Projekt trennt die beiden Varianten in eigene Verzeichnisse auf. Die Faust-Quellbeschreibungen liegen in \texttt{dsp/}, die zugehörigen Wrapper in \texttt{src/faust/} und die manuellen Implementierungen in \texttt{src/native}. Tabelle~\ref{tab:dateien} ordnet jedem Baustein aus Tabelle~\ref{tab:bausteine} die beiden Dateien zu.
+
 
 \begin{table}[htb]
 	\centering
@@ -62,8 +63,7 @@ Signalverarbeitung nicht ausprogrammiert, sondern als Komposition benannt wird.
 
 Die Verstärkungsstufe ist eine Multiplikation mit einem Bedienelement, dessen
 Vorgabewert $0{,}5$ beträgt. Der Akkumulator besteht aus dem Rekursionsoperator
-aus Tabelle~3.1 in seiner kürzesten Form. Der Biquad-Filter und die FIR-Filter
-verwenden Bibliotheksfunktionen: \texttt{fi.tf2} nimmt die fünf Koeffizienten
+aus Tabelle~\ref{tab:faust-operatoren} in seiner kürzesten Form. Der Biquad-Filter und die FIR-Filter verwenden Bibliotheksfunktionen. \texttt{fi.tf2} nimmt die fünf Koeffizienten
 entgegen, \texttt{fi.fir} eine Koeffizientenliste, die \texttt{par} nach der
 Vorschrift aus Abschnitt~\ref{sec:bausteine} erzeugt. Die FFT entsteht aus zwei
 hintereinandergeschalteten Bibliotheksfunktionen: \texttt{an.rtocv} bildet aus
@@ -75,14 +75,17 @@ abläuft. Weder Schleifen noch Puffer noch Indexrechnung kommen vor. Genau
 diesen Teil ergänzt der Faust-Compiler. Sie interpretiert aus dem Rechenoperationen den optimalen C++-Code.
 
 Die manuellen Implementierungen sind Header-only-Klassen. Für Gain und
-Akkumulator ist die Umsetzung unmittelbar: eine Schleife über die Samples mit
+Akkumulator ist die Umsetzung unmittelbar eine Schleife über die Samples mit
 einer Multiplikation beziehungsweise einer Addition auf einer im Objekt
 gehaltenen Zustandsvariablen.
 
-Der Biquad-Filter folgt der Direktform~I und ist damit die wörtliche
-Übertragung der Differenzengleichung. Programm~\ref{prog:biquad-native} zeigt
-die Schleife. Sie hält vier Werte, nämlich die beiden vorherigen Ein- und
-Ausgangswerte, und schiebt sie nach jedem Sample weiter.
+Der Biquad-Filter folgt der Direktform~I (Abbildung~\ref{fig:biquad-df1}).
+Programm~\ref{prog:biquad-native} zeigt die Schleife. Sie hält die beiden
+vorherigen Ein- und Ausgangswerte und schiebt sie nach jedem Sample weiter. Die
+Faust-Bibliotheksfunktion \texttt{fi.tf2} ergibt dagegen die Direktform~II
+(Abbildung~\ref{fig:biquad-df2}). Die Entscheidung, jede Seite in ihrer
+naheliegenden Form zu formulieren, ist in Abschnitt~\ref{sec:bausteine}
+begründet.
 
 \begin{program}
 	\caption{Manuelle Biquad-Implementierung in Direktform~I}
@@ -105,11 +108,7 @@ Unterschied ist keine Nachlässigkeit, sondern die in
 Abschnitt~\ref{sec:bausteine} begründete Entscheidung, jede Seite in der für
 sie naheliegenden Form zu formulieren.
 
-\input{figures/abb_biquad_formen}
-
-Der FIR-Filter ist ein Klassen-Template über die Filterlänge. Die vergangenen
-Eingangswerte liegen in einem Ringpuffer. Da alle drei Filterlängen
-Zweierpotenzen sind, wird der Ringpuffer über eine Bitmaske adressiert; ein
+Der FIR-Filter ist ein Klassen-Template über die Filterlänge.
 \texttt{static\_assert} sichert diese Voraussetzung zur Übersetzungszeit ab.
 Die Koeffizienten werden im Konstruktor nach derselben Vorschrift berechnet
 wie in der Faust-Beschreibung. Der Faust-Compiler wählt hier einen anderen Weg
@@ -160,6 +159,8 @@ vollständig.
 	\end{CCode}
 \end{program}
 
+Abbildung~\ref{fig:schnittstelle} zeigt die Vererbungsbeziehung und die Nutzer der Schnittstelle.
+
 \input{figures/abb_schnittstelle}
 
 Diese Aufteilung hat drei Folgen für die Messung.
@@ -185,7 +186,7 @@ vollständig ausgerollte Klasse. Wobei die manuelle Implementierung die Länge
 erst zur Laufzeit in \texttt{initForSize()} erhält. Deshalb wird je Länge ein
 eigenes ausführbares Programm erzeugt.
 
-\section{Build-Systeme}
+\section{Build-System}
 \label{sec:build}
 
 Das Projekt wird mit CMake ab Version~3.20 und Ninja übersetzt, als
@@ -215,7 +216,7 @@ und nach einer Änderung an der \texttt{.dsp}-Datei neu übersetzt.
 
 Die Option \texttt{-cn} legt den Namen der erzeugten Klasse fest. Weitere
 Schalter werden nicht gesetzt; es gilt damit das voreingestellte C++-Backend im
-skalaren Modus, wie in Abschnitt~\ref{sec:compilerkonfig} begründet.
+skalaren Modus, wie in Abschnitt~\ref{sec:compiler} begründet.
 
 Die generierten Dateien werden nicht getrennt übersetzt, sondern vom jeweiligen
 Wrapper eingebunden. Die Faust-Bausteine sind deshalb reine
@@ -230,9 +231,8 @@ Die Optimierungsflags stehen in einer einzigen Cache-Variablen, die die
 Release-Flags überschreibt. Zusätzlich schreibt der Build eine Datei mit den
 tatsächlich verwendeten Übersetzungsbefehlen, die Abschnitt~\ref{sec:fair} für
 die Prüfung der Vergleichsbasis heranzieht. Jede Konfiguration der Flag-Matrix
-aus Abschnitt~\ref{sec:compilerkonfig} erhält ein eigenes Build-Verzeichnis, so
-dass keine Zwischenergebnisse aus einer anderen Konfiguration wiederverwendet
-werden.
+aus Abschnitt~\ref{sec:compiler} erhält ein eigenes Build-Verzeichnis.
+
 
 Neben den Messprogrammen entstehen die Probe-Programme für die Binärgrößen- und Speichermessung. Sie stammen alle aus einer einzigen Quelldatei; Header und Klassenname des zu messenden Bausteins werden ihr über Präprozessor-Definitionen mitgegeben. Dadurch unterscheiden sich die Probe-Programme untereinander ausschließlich im gemessenen Baustein.
 
@@ -268,8 +268,7 @@ Code entfernt.
 \paragraph{Gleiche Mittel.}
 Auf beiden Seiten sind explizit programmierte SIMD-Intrinsics und externe
 DSP-Bibliotheken ausgeschlossen. Die automatische Vektorisierung des
-C++-Compilers bleibt für beide aktiv. Damit bleibt sichtbar, was die
-Codegenerierung des Faust-Compilers gegenüber gewöhnlichem C++ bewirkt.
+C++-Compilers bleibt für beide aktiv.
 
 \paragraph{Getrennte Programme je Messgröße.}
 Die Genauigkeitsprogramme werden ausdrücklich ohne gelockerte
@@ -288,6 +287,7 @@ Unterschiede folgen daraus, dass jede Seite in ihrer naheliegenden Form
 formuliert wurde. Sie werden hier benannt und in
 Kapitel~\ref{cha:evaluation} bei der Deutung der betroffenen Messwerte erneut
 aufgegriffen.
+
 
 \section{Verifikation der Ergebnisse}
 \label{sec:verifikation}

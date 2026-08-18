@@ -1,0 +1,63 @@
+% =====================================================================
+%  Abbildung 5.x  --  FIR (fi.fir)
+% =====================================================================
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+  \def\xs{1.35}   % Split-Schiene
+  \def\xd{3.1}    % Verzoegerungsbloecke
+  \def\xm{5.5}    % Koeffizientenbloecke
+  \def\xe{7.3}    % Merge-Schiene
+
+  \node[fsig] (in) at (0,-2.00) {$x[n]$};
+  \draw[fw] (in.east) -- (\xs,-2.00);
+  \node[fdot] at (\xs,-2.00) {};
+
+  \draw[fplain] (\xs,0.1) -- (\xs,-4.0);
+  \draw[fplain] (\xe,0.1) -- (\xe,-4.0);
+
+  \node[fb] (d0) at (\xd, 0.0) {\texttt{@(0)}};
+  \node[fb] (k0) at (\xm, 0.0) {$*(b_0)$};
+  \node[fb] (d1) at (\xd,-1.15) {\texttt{@(1)}};
+  \node[fb] (k1) at (\xm,-1.15) {$*(b_1)$};
+  \node[fb] (d2) at (\xd,-2.30) {\texttt{@(2)}};
+  \node[fb] (k2) at (\xm,-2.30) {$*(b_2)$};
+  \node[fb] (dL) at (\xd,-4.0) {\texttt{@(L-1)}};
+  \node[fb] (kL) at (\xm,-4.0) {$*(b_{L-1})$};
+
+  \foreach \n/\y in {d0/0.0, d1/-1.15, d2/-2.30, dL/-4.0} {
+    \draw[fw] (\xs,\y) -- (\n.west);
+  }
+  \foreach \a/\b in {d0/k0, d1/k1, d2/k2, dL/kL} {
+    \draw[fw] (\a.east) -- (\b.west);
+  }
+  \foreach \n/\y in {k0/0.0, k1/-1.15, k2/-2.30, kL/-4.0} {
+    \draw[fw] (\n.east) -- (\xe,\y);
+  }
+
+  \node at (\xd,-3.15) {$\vdots$};
+  \node at (\xm,-3.15) {$\vdots$};
+
+  \node[fsig] (out) at (9.0,-2.00) {$y[n]$};
+  \draw[fw] (\xe,-2.00) -- (out.west);
+  \node[fdot] at (\xe,-2.00) {};
+
+  \begin{scope}[on background layer]
+    \node[fgrp, fit=(in)(d0)(kL)(out)] (proc) {};
+    \foreach \a/\b in {d0/k0, d1/k1, d2/k2, dL/kL} {
+      \node[fgrpin, inner sep=1.2mm, fit=(\a)(\b)] {};
+    }
+  \end{scope}
+  \fgname{proc}{process = fi.fir(par(i, L, $b_i$))}
+\end{tikzpicture}
+\caption[Faust-Blockdiagramm des FIR-Filters]%
+{FIR-Filter (\texttt{fir32.dsp} u.\,a., \texttt{fi.fir}). Das Eingangssignal
+wird auf $L$ Zweige verteilt (\texttt{<:}); jeder Zweig ist eine sequenzielle
+Komposition aus Verz\"ogerung und Gewichtung, danach werden alle Zweige
+zusammengef\"uhrt (\texttt{:>}). Gezeichnet sind die ersten drei und der
+letzte Zweig; gemessen wird mit $L \in \{32, 64, 256\}$. Die Struktur ist
+vollst\"andig parallel -- es gibt keine R\"uckkopplung, und der
+Faust-Compiler schreibt die Summe im erzeugten C++-Code als eine einzige
+ausgeschriebene Zeile aus (Abb.~\ref{fig:fir-ringpuffer}).}
+\label{fig:faust-fir}
+\end{figure}
