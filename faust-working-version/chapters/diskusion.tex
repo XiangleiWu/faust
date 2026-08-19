@@ -1,8 +1,185 @@
 \chapter{Diskussion}
 \label{cha:diskussion}
+
+Kapitel~\ref{cha:evaluation} hat berichtet, was gemessen wurde. Dieses Kapitel ordnet die Ergebnisse ein: Es erklärt die beobachteten Effekte, beantwortet damit die Teilfragen aus Abschnitt~\ref{sec:forschungsfrage} und benennt anschließend, was der Aufbau nicht leisten kann.
+
 \section{Interpretation der Ergebnisse im Hinblick auf die Forschungsfrage}
+\label{sec:interpretation}
+
+\subsection{Der Laufzeitvergleich hängt an der Wahl der Referenz}
+\label{subsec:disk-referenz}
+
+Das auffälligste Ergebnis der Messung ist kein Wert, sondern eine Abhängigkeit. Beim FIR-Filter liefert derselbe Faust-Code zwei gegensätzliche Urteile, je nachdem, welche C++-Implementierung als Vergleich dient: Gegen die Ringpuffer-Variante ist er bei allen Filterlängen rund $46$ bis $49$~Prozent schneller, gegen die linear adressierte Variante bei $L=256$ dagegen $58$~Prozent langsamer (Tabelle~\ref{tab:eval-fir}).
+
+Beide C++-Varianten berechnen dasselbe und sind beide idiomatisch geschrieben. Sie unterscheiden sich allein darin, wie sie den Verlaufspuffer adressieren. Der Ringpuffer berechnet seinen Index über eine Bitmaske; für den Compiler sieht das aus wie ein Zugriff auf verstreute Adressen, und er vektorisiert die Schleife nicht. Die zweite Variante hält den Zustand doppelt und adressiert dadurch fortlaufend, was sich in SIMD-Befehle übersetzen lässt. Wie stark dieser Unterschied wiegt, zeigt der Optimierungs-Sweep: Beim Übergang von \texttt{-O3} zur vollen Optimierung wird die lineare Variante um den Faktor $5{,}5$ schneller, die Faust-Variante um $2{,}9$ und der Ringpuffer nur um $1{,}8$ (Abschnitt~\ref{sec:eval-opt}).
+
+Daraus folgt eine methodische Einsicht, die über diese Arbeit hinausreicht. Ein Vergleich zwischen einer Sprache und einer handgeschriebenen Referenz misst immer beides zugleich: die Qualität der Codegenerierung und die Qualität der gewählten Referenzformulierung. Ohne die zweite C++-Variante wäre diese Arbeit zu dem Schluss gekommen, Faust sei bei FIR-Filtern durchgehend rund $46$~Prozent schneller. Dieser Schluss wäre falsch gewesen: Er hätte eine Eigenschaft der Referenz als Eigenschaft der Sprache ausgewiesen. Eine einzelne Referenzimplementierung reicht deshalb nicht aus, um eine Aussage über eine Sprache zu stützen.
+
+\subsection{Die Compilerkonfiguration wiegt schwerer als die Sprachwahl}
+\label{subsec:disk-compiler}
+
+Bei drei der sechs Bausteine wechselt das Verhältnis über die sieben Flagsätze sein Vorzeichen (Abbildung~\ref{fig:eval-optsweep}). Am deutlichsten ist das beim Biquad-Filter, und dort lässt sich die Ursache genau benennen.
+
+Die absoluten Zeiten in Abbildung~\ref{fig:eval-biquad-fastmath} zeigen, dass die Faust-Variante von \texttt{-O2} bis zur vollen Optimierung nahezu unverändert bei rund $2{,}4$~Mikrosekunden je Block bleibt. Die C++-Referenz liegt über dieselben Flagsätze zunächst gleichauf und steigt erst im letzten Schritt auf $4{,}03$~Mikrosekunden. Der Vorsprung der Faust-Seite entsteht also nicht dadurch, dass Faust schneller wird, sondern dadurch, dass die C++-Referenz langsamer wird.
+
+Das entspricht genau der Vorhersage, die Abschnitt~\ref{sec:compiler} aus der Literatur abgeleitet hat. \texttt{-ffast-math} aktiviert unter anderem \texttt{-fassociative-math} und erlaubt dem Compiler damit, Gleitkommaadditionen frei umzuordnen \parencite{gcc13manual}. Bei rückgekoppelten Filtern kann das die Abhängigkeitskette verlängern statt sie zu verkürzen \parencite{parhi1999vlsi}. Beide Seiten sind davon unterschiedlich betroffen, weil sie unterschiedliche Direktformen verwenden: Die Direktform~I der C++-Referenz führt zwei getrennte Verzögerungsketten und bietet dem Compiler mehr Spielraum zum Umordnen, die Direktform~II der Faust-Variante kommt mit einer Kette aus. Damit ist eine aus der Literatur übernommene Behauptung an eigenen Messdaten bestätigt --- und der auffälligste Einzelbefund der Arbeit ist kein Argument für Faust.
+
+Beim FIR-Filter wirkt derselbe Flagsatz in die andere Richtung. Die Reihenfolge der Beschleunigungsfaktoren --- lineare C++-Variante vor Faust vor Ringpuffer --- entspricht der Erwartung, dass sich vektorisierbare Ausdrücke von solchen mit Datenabhängigkeiten trennen lassen und nur die erste Gruppe von der automatischen Vektorisierung profitiert \parencite{scaringella:hal-02158949}.
+
+Eine Beobachtung bleibt unerklärt: Unter \texttt{-march=native} ohne \texttt{-ffast-math} wird die Faust-Variante von FIR-256 um $60$~Prozent langsamer, während beide C++-Varianten unverändert bleiben. Aus den vorliegenden Daten lässt sich dafür keine Ursache ableiten; eine Untersuchung des erzeugten Maschinencodes wäre nötig.
+
+\subsection{Skalierungsverhalten}
+
+Über die Blockgröße verhalten sich beide Varianten gleich. Die Rechenzeit je Sample bleibt konstant, der Aufwand wächst also linear, und das Verhältnis ändert sich nicht (Abbildung~\ref{fig:eval-skalierung}). Die einzige Ausnahme ist die Verstärkungsstufe mit $-8{,}0$~Prozent zwischen $N=64$ und $N=1024$. Sie hat den größten Anteil an blockweisem Festaufwand, und genau dieser Festaufwand erklärt auch ihren Laufzeitunterschied: Die Faust-Variante liest den Verstärkungsfaktor als Signal aus dem Objekt, weil er in der Beschreibung als Bedienelement angelegt ist, während die manuelle Implementierung ihn als konstantes Feld hält. Bei rund drei Nanosekunden je Block fällt dieser eine zusätzliche Zugriff ins Gewicht; mit wachsender Blockgröße verteilt er sich und der Unterschied verschwindet.
+
+Beim Akkumulator ist kein Unterschied auflösbar. Das ist ein inhaltliches Ergebnis und kein Nullbefund: Der Baustein wurde aufgenommen, um zwei mögliche Ursachen für den Biquad-Unterschied zu trennen. Weil die reine Rückkopplung auf beiden Seiten gleich viel kostet, kann der Biquad-Unterschied nicht aus ihr stammen --- was mit der Erklärung über die Direktformen aus Abschnitt~\ref{subsec:disk-compiler} zusammenpasst.
+
+Bei der FFT wechselt das Vorzeichen zwischen $N=64$ und $N=128$. Der Faust-Compiler rollt die Butterfly-Struktur vollständig aus; für $N=64$ sind das $192$~Butterflies je Ausgangssample, für $N=256$ bereits $1024$. Die naheliegende Erklärung ist, dass der ausgerollte Code die Kapazität des Befehls-Zwischenspeichers überschreitet, während die manuelle Implementierung unabhängig von $N$ dieselbe kleine Schleife ausführt. Die Binärgrößen stützen das, ein direkter Nachweis über Hardware-Zähler fehlt jedoch; Abschnitt~\ref{sec:validitaet} greift diese Einschränkung auf.
+
+\subsection{Speicherbedarf und Binärgröße}
+
+Beim Speicher ist der Befund eindeutig und wenig überraschend: Beide Varianten fordern im Audio-Pfad keinen Speicher an, und ihr Gesamtbedarf unterscheidet sich um weniger als $3$~Prozent. Die auffällige Asymmetrie der Zustandsgrößen ist eine Frage der Ablage, nicht des Verbrauchs. Faust hält den Zustand im Objekt, die manuellen Implementierungen von FIR und FFT fordern ihn beim Anlegen des Objekts an. Wer nur \texttt{sizeof} betrachtet, hält die Faust-Seite für die speicherhungrigere. Für den Echtzeitbetrieb ist die Ablage im Objekt sogar die günstigere Form, weil sie ohne Allokator auskommt. Die Angabe aus der Literatur, Faust erzeuge Code mit konstantem und deterministischem Speicherverbrauch \parencite{orlarey:hal-02159014}, ist damit bestätigt --- gilt hier aber ebenso für die manuellen Implementierungen.
+
+Bei der Binärgröße ist die Spalte \texttt{-Os} in Abbildung~\ref{fig:eval-binaergroesse} die aussagekräftigste. Diese Option weist den C++-Compiler an, auf Codegröße zu optimieren; trotzdem erreicht das Verhältnis dort bei FIR-256 mit $4{,}5$ und bei der FFT mit $7{,}2$ die höchsten Werte überhaupt. Der C++-Compiler kann den bereits ausgerollten Faust-Code also nicht wieder zu einer Schleife zusammenfassen. Damit ist belegt, dass das Ausrollen eine Eigenschaft des von Faust erzeugten Quelltexts ist und keine Entscheidung des nachgelagerten Compilers.
+
+Dieselbe Eigenschaft erklärt die Übersetzungsdauer: Was sich in der Binärgröße als gewachsener Code niederschlägt, muss zuvor erzeugt werden. Für die praktische Arbeit bedeutet beides zusammengenommen, dass große Filter und Transformationen in Faust einen Preis haben, der sich nicht wegoptimieren lässt --- an Programmspeicher und an Wartezeit beim Übersetzen.
+
+\subsection{Codelänge und Implementierungskomplexität}
+\label{subsec:disk-code}
+
+Der Umfangsvorteil der Faust-Beschreibung skaliert mit der Komplexität des Bausteins: Eine Multiplikation je Sample lässt sich in C++ genauso kurz hinschreiben wie in Faust, eine Radix-2-FFT mit Bit-Umkehrtabelle, Twiddle-Faktoren und Verlaufspuffer nicht. Der Größenordnung nach deckt sich das mit dem für physikalische Modelle berichteten Vorteil von $22{,}91$ bis $80{,}20$~Prozent \parencite{michon2011fauststk} und weitet ihn auf elementare Bausteine aus.
+
+Die Trennung vom Wrapper ist dabei keine Formalie. Zählt man ihn mit, ist die Faust-Seite bei Gain und Akkumulator sogar länger. Der Wrapper ist allerdings für alle Bausteine nahezu gleich und einmal wiederverwendbar --- das gemeinsame FIR-Template kommt mit vier Zeilen aus. Wer Faust für ein einzelnes triviales Modul einsetzt, gewinnt nichts; wer es für viele oder für komplexe Module einsetzt, gewinnt deutlich.
+
+Codezeilen messen jedoch den Umfang und nicht den Aufwand. Drei Beobachtungen aus der Umsetzung ergänzen das Bild und lassen sich nicht in Zahlen fassen.
+
+\paragraph{Die Beschreibung ist kurz, die Einarbeitung nicht.}
+Eine Zeile wie \texttt{process = fi.tf2(...)} setzt voraus, dass man weiß, welche Direktform \texttt{fi.tf2} erzeugt und in welcher Reihenfolge die Koeffizienten erwartet werden. Beides steht nicht im Programm. Der Aufwand verschiebt sich vom Schreiben zum Nachschlagen.
+
+\paragraph{Die erzeugte Form ist nicht frei wählbar.}
+Die Direktform~I ließ sich mit \texttt{fi.tf2} nicht ausdrücken. Wer aus numerischen oder strukturellen Gründen eine bestimmte Form braucht, muss sie in Faust von Hand nachbauen und verliert dabei genau den Vorteil, der die Sprache attraktiv macht.
+
+\paragraph{Konventionen sind nicht sichtbar.}
+Dass \texttt{an.rtocv} das Analysefenster mit dem neuesten Sample zuerst serialisiert, war weder der Beschreibung noch der Dokumentation zu entnehmen. Aufgefallen ist es erst durch den Vergleich gegen die unabhängig gerechnete Referenz, wo sich ein exakt negiertes Spektrum zeigte. Beide Implementierungen waren sich einig und lagen gemeinsam falsch --- ein Fehler, der ohne dritte Instanz unentdeckt geblieben wäre.
+
+Dem steht gegenüber, dass die Integration unkompliziert ist: Der erzeugte Code ist eine gewöhnliche C++-Klasse ohne Laufzeitabhängigkeiten, und die Einbindung in ein bestehendes CMake-Projekt kostete eine Funktion von zehn Zeilen.
+
+\subsection{Antworten auf die Teilfragen}
+\label{subsec:disk-teilfragen}
+
+Tabelle~\ref{tab:disk-antworten} fasst zusammen, was sich aus den Messergebnissen für jede Teilfrage ableiten lässt.
+
+\begin{table}[htb]
+	\centering
+	\small
+	\caption{Teilfragen und ihre Beantwortung}
+	\label{tab:disk-antworten}
+	\renewcommand{\arraystretch}{1.25}
+	\begin{tabularx}{\textwidth}{@{} L{34mm} X L{24mm} @{}}
+		\toprule
+		\textbf{Teilfrage} & \textbf{Antwort} & \textbf{Grundlage} \\
+		\midrule
+		Performanzunterschied je Baustein
+		& Kein einheitlicher Befund. Gain und Akkumulator gleichauf, Biquad und
+		FIR mit deutlichem Vorsprung für Faust, FFT je nach Größe in beide
+		Richtungen. Die Vorsprünge gelten nur für die verwendete
+		Compilerkonfiguration und die gewählte Referenzformulierung.
+		& \ref{fig:eval-verhaeltnis}, \ref{tab:eval-laufzeit} \\
+		Abhängigkeit von Blockgröße, Filterlänge und FFT-Größe
+		& Von der Blockgröße unabhängig: Der Aufwand wächst linear, das
+		Verhältnis bleibt konstant. Von der Filterlänge abhängig, aber nur im
+		Vergleich zur vektorisierbaren C++-Variante. Von der FFT-Größe stark
+		abhängig, mit Vorzeichenwechsel zwischen $N=64$ und $N=128$.
+		& \ref{fig:eval-skalierung}, \ref{fig:eval-fir} \\
+		Speicherverbrauch
+		& Kein praktischer Unterschied. Beide fordern im Audio-Pfad keinen
+		Speicher an; der Zustand liegt lediglich an unterschiedlicher Stelle.
+		& \ref{fig:eval-speicher} \\
+		Binärgröße
+		& Faust erzeugt durchgängig größeren Code, bei großen Filtern und
+		Transformationen um ein Mehrfaches. Der Abstand bleibt auch unter
+		\texttt{-Os} bestehen und ist damit eine Eigenschaft des erzeugten
+		Quelltexts.
+		& \ref{fig:eval-binaergroesse} \\
+		Compileroptimierung und Vektorisierung
+		& Der stärkste Einflussfaktor überhaupt. Drei von sechs Bausteinen
+		wechseln das Vorzeichen ihres Unterschieds über die Flagsätze; beim
+		Biquad-Filter ist die Ursache auf \texttt{-ffast-math} und die
+		Direktform der Referenz zurückführbar.
+		& \ref{fig:eval-optsweep}, \ref{fig:eval-biquad-fastmath} \\
+		Codelänge und Implementierungskomplexität
+		& Die Beschreibung ist um Faktor $9$ bis $31$ kürzer, der Vorteil
+		wächst mit der Komplexität des Bausteins. Mit Wrapper gerechnet
+		verschwindet er bei trivialen Bausteinen. Der Aufwand verschiebt sich
+		vom Schreiben zum Nachschlagen.
+		& \ref{fig:eval-codelaenge}, \ref{tab:eval-code} \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\subsection{Antwort auf die übergeordnete Forschungsfrage}
+
+Die Forschungsfrage lautet, wie sich Faust-generierter C++-Code von einer manuell implementierten C++-Referenz bei ausgewählten DSP-Bausteinen und FFTs hinsichtlich Laufzeit, Speicherverbrauch, Binärgröße, Codelänge und Implementierungskomplexität unterscheidet.
+
+Für die Laufzeit lautet die Antwort: Es gibt keinen stabilen Unterschied, der sich der Sprache zuschreiben ließe. Die gemessenen Verhältnisse reichen von $0{,}51$ bis $1{,}17$, aber sie hängen an zwei Faktoren, die nichts mit der Codegenerierung zu tun haben --- an der Compilerkonfiguration und an der Wahl der C++-Referenzformulierung. Wo beide Faktoren festgehalten werden, liegen die Varianten bei den einfachen Bausteinen gleichauf; die verbleibenden Unterschiede lassen sich auf konkrete strukturelle Ursachen zurückführen, nicht auf eine allgemeine Überlegenheit einer Seite.
+
+Für die übrigen Größen ist die Antwort eindeutiger, weil die Befunde über alle Compilerkonfigurationen stabil bleiben. Der Speicherverbrauch ist praktisch gleich. Der Binärcode ist bei Faust durchgängig größer, bei großen Filtern und Transformationen um ein Mehrfaches, und das Ausrollen lässt sich nicht wegoptimieren. Die Beschreibung ist erheblich kürzer, sofern der wiederverwendbare Wrapper getrennt gezählt wird.
+
+Praktisch heißt das: Faust ist bei diesen Bausteinen keine Frage der Geschwindigkeit. Es ist eine Abwägung zwischen einer deutlich kürzeren Beschreibung auf der einen und größerem Binärcode, längerer Übersetzungsdauer sowie geringerer Kontrolle über die erzeugte Struktur auf der anderen Seite.
 
 \section{Limitationen des Versuchsaufbaus}
+\label{sec:limitationen}
+
+Fünf Einschränkungen begrenzen die Reichweite der Ergebnisse.
+
+\paragraph{Eine einzige Plattform.}
+Alle Messungen laufen auf einem AMD Ryzen 7 4700U unter WSL2 mit g++ 13.3.0. Aussagen über andere Prozessorarchitekturen, andere Betriebssysteme oder andere C++-Compiler lassen sich daraus nicht ableiten. Gerade weil sich der Einfluss der Compilerkonfiguration als dominierend erwiesen hat, ist zu erwarten, dass ein anderer Compiler zu anderen Verhältnissen führt.
+
+\paragraph{Nur der skalare Faust-Modus.}
+Die Hauptmessung verwendet ausschließlich das voreingestellte C++-Backend. Die in Abschnitt~\ref{subsec:vec-gegenprobe} vorbereitete Gegenprobe mit dem Vektor-Modus war nicht Teil des ausgewerteten Laufs. Damit bleibt offen, ob sich der Rückstand der Faust-Variante bei FIR-256 unter voller Optimierung durch eine andere Codegenerierungsstrategie aufholen ließe. Der Parallel-Modus wurde ebenfalls nicht untersucht.
+
+\paragraph{Einzelne Bausteine statt einer Signalkette.}
+Gemessen werden fünf isolierte Bausteine. Effekte, die erst durch die Verkettung mehrerer Bausteine entstehen --- etwa die Wiederverwendung von Zwischenergebnissen über eine ganze Verarbeitungskette hinweg, für die der Faust-Compiler den vollständigen Signalfluss analysieren kann --- bleiben unsichtbar. Genau dort könnte der Ansatz seine Stärke haben.
+
+\paragraph{Eine nicht handoptimierte Referenz.}
+Die manuellen Implementierungen sind im Rahmen dieser Arbeit entstanden. Für den FIR-Filter liegen zwei Formulierungen vor, für die übrigen Bausteine jeweils eine. Abschnitt~\ref{subsec:disk-referenz} zeigt, wie stark die Wahl der Formulierung das Ergebnis verschiebt; für die Bausteine mit nur einer Referenz ist dieselbe Unsicherheit anzunehmen, ohne dass sie sich beziffern ließe.
+
+\paragraph{Eine praxisferne FFT-Form.}
+Beide Varianten berechnen eine gleitende Fenster-FFT, also für jedes Sample eine vollständige Transformation. Diese Form ergibt sich aus der Semantik der verwendeten Faust-Funktion und nicht aus einer praktischen Anforderung; übliche Anwendungen arbeiten mit Blockverarbeitung und Fenstervorschub. Die untersuchten Transformationslängen sind zudem klein.
 
 \section{Bedrohung der Validität}
 \label{sec:validitaet}
+
+\subsection{Interne Validität}
+
+\paragraph{Die Systemlast lag über dem Richtwert.}
+Das Umgebungsprotokoll weist zu Beginn der Messung eine Ein-Minuten-Last von $4{,}19$ und am Ende von $1{,}00$ aus, während Abschnitt~\ref{sec:hardware} einen Richtwert unter $0{,}3$ nennt. Weil beide Varianten im selben Prozess und im selben Zeitfenster gemessen werden und weil Verhältnisse statt absoluter Zeiten berichtet werden, sind die Verhältnisse davon nur schwach betroffen. Die absoluten Zeiten dürfen jedoch nicht als Plattformkennwerte gelesen werden.
+
+\paragraph{Die Auflösungsgrenze beruht auf einem geänderten Verfahren.}
+Abschnitt~\ref{sec:aufloesungsgrenze} sieht vor, die Grenze aus der Verstärkungsstufe abzuleiten, weil beide Seiten für sie praktisch denselben Code erzeugen sollten. Die Messung widerlegt diese Annahme: Die Verstärkungsstufe weicht bei kleinen Blockgrößen um bis zu $6{,}8$~Prozent ab. Nach dem ursprünglichen Verfahren läge die Grenze folglich bei $6{,}8$~Prozent und würde jeden Befund verschlucken, der kleiner ist als der eigene Bezugsfall. Der verwendete Nullvergleich kommt ohne Annahme über Codegleichheit aus und erfasst zusätzlich die Drift während des Laufs. Die Abweichung vom Versuchsdesign ist damit begründet, sie bleibt aber eine nachträgliche Anpassung des Auswertungsverfahrens an die Daten.
+
+\paragraph{Der Signifikanztest ist wirkungslos.}
+Bei 31 der 33 Messpunkte liegt der p-Wert am unteren Anschlag der Gleitkommadarstellung. Bei 300 Wiederholungen je Messpunkt wird jede noch so kleine Verschiebung signifikant --- ein Fall, den Abschnitt~\ref{sec:aufloesungsgrenze} vorwegnimmt. Der Test trennt hier nichts; tragend sind Verhältnis, Konfidenzintervall und Auflösungsgrenze. Die schmalen Konfidenzintervalle belegen zudem nur eine gut wiederholbare Messung und nicht, dass das Verhältnis den wahren Leistungsunterschied trifft.
+
+\paragraph{Eine Messartefakt-Quelle wurde nachträglich entdeckt.}
+Die Lage der Puffer im Speicher veränderte die gemessene Zeit der Verstärkungsstufe um den Faktor $2{,}03$, bevor sie durch eine feste Pufferlage stabilisiert wurde (Abschnitt~\ref{sec:fair}). Dass ein Effekt dieser Größenordnung überhaupt auftreten konnte, mahnt zur Vorsicht: Es ist nicht auszuschließen, dass weitere Artefakte gleicher Art unentdeckt geblieben sind, insbesondere bei den Bausteinen mit den kleinsten absoluten Zeiten.
+
+\paragraph{Die Deutung des FFT-Befunds ist nicht belegt.}
+Die Erklärung über den Befehls-Zwischenspeicher stützt sich auf die gemessene Codegröße und nicht auf Hardware-Zähler. Sie ist plausibel und passt zu den übrigen Beobachtungen, bleibt aber eine Vermutung.
+
+\subsection{Konstruktvalidität}
+
+\paragraph{Codezeilen messen nicht Implementierungskomplexität.}
+Die Teilfrage nach Codelänge \emph{und} Implementierungskomplexität wird nur für den ersten Teil quantitativ beantwortet. Eine Zeile Faust setzt Kenntnis der Blockdiagrammalgebra und der Bibliotheksfunktionen voraus, eine Zeile C++ nicht. Die in Abschnitt~\ref{subsec:disk-code} berichteten Beobachtungen sind Erfahrungen einer einzelnen Person und ersetzen keine Untersuchung des Entwicklungsaufwands.
+
+\paragraph{\enquote{Naheliegende Formulierung} ist kein scharfes Konstrukt.}
+Der Vergleich beruht darauf, dass jede Seite in ihrer naheliegenden Form formuliert wird. Was naheliegend ist, hängt von der Erfahrung der schreibenden Person ab. Der FIR-Befund zeigt, dass innerhalb dieses Spielraums Unterschiede von mehr als Faktor zwei liegen können.
+
+\paragraph{Das Verhältnis verbirgt die Größenordnung.}
+Ein Verhältnis von $1{,}07$ bei der Verstärkungsstufe entspricht einem Unterschied von $0{,}2$~Nanosekunden je Block. Für die Echtzeitfähigkeit ist das bedeutungslos, im Verhältnis aber sichtbar. Verhältnisse sollten deshalb stets zusammen mit den absoluten Zeiten aus Kapitel~\ref{cha:evaluation} gelesen werden.
+
+\subsection{Externe Validität}
+
+Die Ergebnisse gelten für fünf lineare, zeitinvariante Bausteine mit konstanten Koeffizienten, auf einer Plattform, mit einem Compiler und in einer Faust-Version. Nichtlineare Verarbeitung, zeitvariable Parameter, Mehrkanalverarbeitung und Bausteine mit großen Verzögerungsspeichern wurden nicht untersucht.
+
+Besonders einzuschränken ist die Übertragbarkeit der Laufzeitbefunde. Da sich die Compilerkonfiguration als der stärkste Einflussfaktor erwiesen hat und die Hauptmessung mit einem einzigen, noch dazu aggressiven Flagsatz gefahren wurde, sind die berichteten Prozentwerte nicht als Kennzahlen für Faust zu verstehen. Übertragbar ist dagegen der strukturelle Befund: dass der Faust-Compiler Faltung und Transformation vollständig ausrollt, mit den daraus folgenden Konsequenzen für Binärgröße und Übersetzungsdauer. Diese Eigenschaft ist vom Flagsatz unabhängig und in jeder untersuchten Konfiguration sichtbar.

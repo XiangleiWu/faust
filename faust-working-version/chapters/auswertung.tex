@@ -1,19 +1,289 @@
 \chapter{Evaluation der Messergebnisse}
 \label{cha:evaluation}
-\section{Mikrobenchmark-Ergebnisse}
 
-je Baustein: 
-	CPU-Zeit/Block; Durchsatz; Speicherverbrauch, Binaergröße
-	Grafiken
-	
-\section{Einfluss von Compileroptimierungen und Codegenerierung}
+Dieses Kapitel berichtet, was gemessen wurde. Es prüft zuerst, ob die Messung gültig ist, und stellt danach die Ergebnisse je Messgröße dar. Jeder Abschnitt nennt den \emph{Befund} in einem Satz und darunter unter \emph{Beleg} die Stelle in den Messdaten, an der er sich ablesen lässt. Erklärungen der beobachteten Effekte und die Beantwortung der Teilfragen bleiben Kapitel~\ref{cha:diskussion} vorbehalten.
 
--O0 -> -O3 und --fastmath
+Alle Zahlen stammen aus einem einzigen Lauf der Messkette aus Abschnitt~\ref{sec:messkette}. Gemessen wurde mit der Voreinstellung des Build-Systems, also mit \texttt{-O3 -march=native -ffast-math}; Abschnitt~\ref{sec:eval-opt} berichtet zusätzlich die übrigen sechs Konfigurationen. Die Rohdaten liegen im Repository aus Abschnitt~\ref{sec:verfuegbarkeit}.
 
-Vektorisierung wurde nicht berücksichtig; Gibt schon eine studie
+%%%--------------------------------------------------------------------
+\section{Gültigkeit der Messung}
+\label{sec:eval-gueltigkeit}
 
-\section{Numerische Genauigkeit}
+\subsection{Numerische Übereinstimmung}
 
-\section{Codelänge und Implementierungskomplexität}
+\paragraph{Befund.}
+Faust-Variante und C++-Referenz liefern für alle Bausteine und Testsignale dasselbe Ergebnis im Rahmen der einfachen Gleitkommagenauigkeit. Bei Gain und Akkumulator stimmen sie bitgenau überein.
 
+\paragraph{Beleg.}
+Die Prüfung umfasst 168 Vergleiche zwischen beiden Varianten und 364 gegen die Referenz in doppelter Genauigkeit. Tabelle~\ref{tab:eval-genauigkeit} zeigt die größten Fehler. Keiner überschreitet seine Toleranz aus Tabelle~\ref{tab:toleranzen}; alle 532 Zeilen tragen den Status \enquote{OK}. Die Fehler gegenüber der Referenz sind für beide Varianten nahezu gleich groß.
+
+\begin{table}[htb]
+	\centering
+	\small
+	\caption{Größter beobachteter Fehler je Baustein}
+	\label{tab:eval-genauigkeit}
+	\begin{tabular}{lrrr}
+		\toprule
+		Baustein & Faust gegen C++ & Faust gegen Referenz & C++ gegen Referenz \\
+		& max.\ Absolutfehler & max.\ Fehler in $\varepsilon$ & max.\ Fehler in $\varepsilon$ \\
+		\midrule
+		Gain          & $0$                  & $0{,}0$  & $0{,}0$  \\
+		Akkumulator   & $0$                  & $56{,}1$ & $56{,}1$ \\
+		Biquad-Filter & $1{,}9\cdot10^{-6}$  & $37{,}3$ & $37{,}9$ \\
+		FIR-32        & $6{,}0\cdot10^{-8}$  & $4{,}4$  & $4{,}4$  \\
+		FIR-64        & $4{,}5\cdot10^{-8}$  & $4{,}6$  & $2{,}3$  \\
+		FIR-256       & $3{,}7\cdot10^{-8}$  & $5{,}0$  & $5{,}0$  \\
+		FFT           & ---                  & $1{,}2$  & $1{,}4$  \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Keine Speicheranforderungen im Audio-Pfad}
+
+\paragraph{Befund und Beleg.}
+Der Allokationszähler der Probe-Programme meldet für alle sieben Bausteine und beide Varianten, also in $14$ von $14$ Fällen, den Wert null.
+
+\subsection{Auflösungsgrenze des Messaufbaus}
+\label{subsec:eval-grenze}
+
+\paragraph{Befund.}
+Die Auflösungsgrenze beträgt $2{,}04$~Prozent. Sie wurde nicht nach dem in Abschnitt~\ref{sec:aufloesungsgrenze} vorgesehenen Verfahren bestimmt.
+
+\paragraph{Beleg.}
+Das vorgesehene Verfahren nimmt den größten Abstand $|r-1|$ der Verstärkungsstufe als Grenze. Dieser Abstand beträgt in der Messung $6{,}8$~Prozent (Abschnitt~\ref{sec:eval-laufzeit}). Verwendet wurde stattdessen ein Nullvergleich: Jede Messreihe wird in ihre erste und zweite Hälfte geteilt und aus beiden das Verhältnis der Mediane gebildet, sodass derselbe Code unter denselben Bedingungen gegen sich selbst antritt. Aus 81 solchen Vergleichen ergibt sich ein Median von $0{,}57$~Prozent, ein 95.~Perzentil von $2{,}04$~Prozent und ein Maximum von $7{,}26$~Prozent. Als Grenze dient das 95.~Perzentil.
+
+\subsection{Stabilität und Signifikanz}
+
+\paragraph{Befund.}
+Alle 33 Messpunkte sind eingipfelig. Die p-Werte des Signifikanztests liegen fast durchgehend am unteren Anschlag der Gleitkommadarstellung.
+
+\paragraph{Beleg.}
+Die Stabilitätsprüfung meldet für keinen Messpunkt eine zweigipfelige Verteilung. Der relative Interquartilsabstand bleibt bei allen Bausteinen außer der Verstärkungsstufe unter $4{,}5$~Prozent; für die Verstärkungsstufe erreicht er $9{,}6$~Prozent bei einem Ausreißeranteil von $7{,}7$~Prozent. Bei 31 der 33 Messpunkte beträgt der p-Wert des Mann-Whitney-U-Tests $1{,}05\cdot10^{-99}$. Auch der Akkumulator, dessen Unterschied innerhalb der Auflösungsgrenze liegt, erreicht p-Werte um $10^{-24}$.
+
+%%%--------------------------------------------------------------------
+\section{Laufzeit der Bausteine}
+\label{sec:eval-laufzeit}
+
+\paragraph{Befund.}
+Der Laufzeitunterschied fällt je Baustein sehr unterschiedlich aus und reicht von $-49$ bis $+17$~Prozent.
+
+\paragraph{Beleg.}
+Abbildung~\ref{fig:eval-verhaeltnis} zeigt alle 33 Messpunkte als Verhältnis $r$ aus dem Median der Faust-Variante und dem der C++-Referenz; Tabelle~\ref{tab:eval-laufzeit} fasst sie je Baustein zusammen.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_verhaeltnis}
+	\caption[Laufzeitverhältnis aller Messpunkte]{Laufzeitverhältnis für alle
+		33 Messpunkte mit 95-Prozent-Konfidenzintervall. Das graue Band ist die
+		Auflösungsgrenze; Werte links der gestrichelten Linie bedeuten, dass die
+		Faust-Variante schneller ist.}
+	\label{fig:eval-verhaeltnis}
+\end{figure}
+
+\begin{table}[htb]
+	\centering
+	\small
+	\caption{Laufzeitverhältnis je Baustein über alle Blockgrößen}
+	\label{tab:eval-laufzeit}
+	\begin{tabular}{llll}
+		\toprule
+		Baustein & Verhältnis $r$ & Unterschied & Urteil \\
+		\midrule
+		Gain          & $0{,}999$--$1{,}068$ & $-0{,}1$ bis $+6{,}8$~\% & uneinheitlich \\
+		Akkumulator   & $1{,}004$--$1{,}009$ & $+0{,}4$ bis $+0{,}9$~\% & nicht auflösbar \\
+		Biquad-Filter & $0{,}617$--$0{,}624$ & $-38{,}3$ bis $-37{,}6$~\% & Faust schneller \\
+		FIR-32        & $0{,}511$--$0{,}516$ & $-48{,}9$ bis $-48{,}4$~\% & Faust schneller \\
+		FIR-64        & $0{,}537$--$0{,}541$ & $-46{,}3$ bis $-45{,}9$~\% & Faust schneller \\
+		FIR-256       & $0{,}541$--$0{,}545$ & $-45{,}9$ bis $-45{,}5$~\% & Faust schneller \\
+		FFT           & $0{,}849$--$1{,}166$ & $-15{,}1$ bis $+16{,}6$~\% & uneinheitlich \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Im Einzelnen: Bei der \emph{Verstärkungsstufe} ist die Faust-Variante bei $N=64$, $128$ und $256$ um $6{,}8$, $4{,}0$ und $5{,}3$~Prozent langsamer; bei $N=512$ und $1024$ enthält das Konfidenzintervall den Wert eins. Beim \emph{Akkumulator} liegt das Verhältnis bei allen Blockgrößen innerhalb der Auflösungsgrenze. Beim \emph{Biquad-Filter} ist die Faust-Variante bei allen Blockgrößen um rund $38$~Prozent schneller. Bei den \emph{FIR-Filtern} ist sie gegenüber der Ringpuffer-Variante zwischen $46$ und $49$~Prozent schneller. Bei der \emph{FFT} wechselt das Vorzeichen: bei $N=64$ ist sie $15{,}1$~Prozent schneller, bei $N=128$ um $16{,}6$ und bei $N=256$ um $8{,}7$~Prozent langsamer; die Konfidenzintervalle dieser drei Punkte überlappen nicht.
+
+%%%--------------------------------------------------------------------
+\section{Skalierungsverhalten}
+\label{sec:eval-skalierung}
+
+\subsection{Blockgröße}
+
+\paragraph{Befund.}
+Die Rechenzeit je Sample bleibt über die Blockgröße nahezu konstant; das Verhältnis zwischen beiden Varianten ändert sich mit der Blockgröße nicht.
+
+\paragraph{Beleg.}
+Abbildung~\ref{fig:eval-skalierung} trägt die Rechenzeit je Sample über die Blockgröße auf. Zwischen $N=64$ und $N=1024$ ändert sie sich beim Akkumulator um $-0{,}5$~Prozent, beim Biquad-Filter um $-0{,}8$, bei FIR-32 um $-0{,}4$ und bei FIR-256 um weniger als $0{,}1$~Prozent. Die Verstärkungsstufe weicht mit $-8{,}0$~Prozent ab. Die Spannweite des Verhältnisses je Baustein in Tabelle~\ref{tab:eval-laufzeit} beträgt außer bei Gain und FFT höchstens $0{,}7$~Prozentpunkte.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_skalierung}
+	\caption[Skalierung mit der Blockgröße]{Rechenzeit je Sample über der
+		Blockgröße. Waagerechte Verläufe bedeuten, dass der Aufwand linear mit der
+		Blockgröße wächst.}
+	\label{fig:eval-skalierung}
+\end{figure}
+
+\subsection{Filterlänge}
+\label{subsec:eval-fir}
+
+\paragraph{Befund.}
+Gegenüber der Ringpuffer-Variante bleibt das Verhältnis über alle Filterlängen nahezu gleich. Gegenüber der linear adressierten Variante steigt es mit der Filterlänge und überschreitet zwischen $L=32$ und $L=64$ den Wert eins.
+
+\paragraph{Beleg.}
+Tabelle~\ref{tab:eval-fir} und Abbildung~\ref{fig:eval-fir} zeigen beide Vergleiche. Gegen den Ringpuffer liegt das Verhältnis bei $0{,}51$, $0{,}54$ und $0{,}54$. Gegen den linearen Puffer liegt es bei $0{,}60$, $1{,}08$ und $1{,}58$.
+
+\begin{table}[htb]
+	\centering
+	\small
+	\caption{FIR-Filter: drei Implementierungen bei Blockgröße 1024}
+	\label{tab:eval-fir}
+	\begin{tabular}{lrrrrr}
+		\toprule
+		& \multicolumn{3}{c}{CPU-Zeit je Block [\textmu s]} & \multicolumn{2}{c}{Verhältnis Faust zu} \\
+		\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+		Filterlänge & Faust & C++ Ring & C++ linear & Ring & linear \\
+		\midrule
+		$L=32$  & $7{,}53$  & $14{,}67$  & $12{,}53$ & $0{,}51$ & $0{,}60$ \\
+		$L=64$  & $14{,}96$ & $27{,}81$  & $13{,}86$ & $0{,}54$ & $1{,}08$ \\
+		$L=256$ & $58{,}60$ & $108{,}27$ & $37{,}05$ & $0{,}54$ & $1{,}58$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_fir}
+	\caption[FIR-Filter: drei Implementierungen]{Links die absoluten Zeiten:
+		Die Kurve der linear adressierten C++-Variante kreuzt die Faust-Kurve
+		zwischen $L=32$ und $L=64$. Rechts dasselbe als Verhältnis.}
+	\label{fig:eval-fir}
+\end{figure}
+
+\subsection{Transformationslänge}
+
+\paragraph{Befund und Beleg.}
+Von $N=64$ auf $N=256$ steigt die Zeit der Faust-Variante von $28{,}0$ auf $850{,}3$~Mikrosekunden, also um den Faktor $30{,}3$. Die manuelle Implementierung steigt im selben Bereich von $33{,}0$ auf $781{,}9$~Mikrosekunden, also um den Faktor $23{,}7$.
+
+%%%--------------------------------------------------------------------
+\section{Compilerkonfigurationen}
+\label{sec:eval-opt}
+
+\paragraph{Befund.}
+Das Verhältnis hängt stark vom Flagsatz ab. Bei drei der sechs Bausteine wechselt sein Vorzeichen über die sieben Konfigurationen.
+
+\paragraph{Beleg.}
+Abbildung~\ref{fig:eval-optsweep} zeigt das Verhältnis über alle Flagsätze bei Blockgröße 1024. Beim Biquad-Filter reicht die Spanne von $1{,}48$ unter \texttt{-Os} bis $0{,}62$ unter \texttt{-O3 -march=native -ffast-math}. Bei FIR-256 liegt das Verhältnis gegen die lineare Variante unter \texttt{-O3} bei $0{,}86$ und unter voller Optimierung bei $1{,}61$. Bei der Verstärkungsstufe beträgt es unter \texttt{-O0} $0{,}44$ und ab \texttt{-O1} zwischen $0{,}99$ und $1{,}09$.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_optsweep}
+	\caption[Verhältnis über die Compilerkonfigurationen]{Laufzeitverhältnis
+		über die sieben untersuchten Flagsätze, Blockgröße 1024.}
+	\label{fig:eval-optsweep}
+\end{figure}
+
+\paragraph{Biquad-Filter im Detail.}
+Abbildung~\ref{fig:eval-biquad-fastmath} zeigt die absoluten Zeiten. Von \texttt{-O2} bis \texttt{-O3 -march=native -ffast-math} bleibt die Faust-Variante zwischen $2{,}35$ und $2{,}48$~Mikrosekunden je Block. Die C++-Referenz liegt über denselben Flagsätze zwischen $2{,}24$ und $2{,}48$~Mikrosekunden, steigt jedoch im letzten Schritt auf $4{,}03$~Mikrosekunden.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_biquad_fastmath}
+	\caption[Biquad-Filter über die Compilerkonfigurationen]{Absolute
+		Rechenzeit des Biquad-Filters bei Blockgröße 1024.}
+	\label{fig:eval-biquad-fastmath}
+\end{figure}
+
+\paragraph{FIR-256 im Detail.}
+Beim Übergang von \texttt{-O3} zur vollen Optimierung sinkt die Zeit bei Blockgröße 1024 von $202{,}3$ auf $36{,}9$~Mikrosekunden bei der linearen Variante (Faktor $5{,}5$), von $173{,}7$ auf $59{,}4$~Mikrosekunden bei Faust (Faktor $2{,}9$) und von $193{,}9$ auf $107{,}2$~Mikrosekunden beim Ringpuffer (Faktor $1{,}8$). Unter \texttt{-march=native} ohne \texttt{-ffast-math} steigt die Zeit der Faust-Variante dagegen von $173{,}7$ auf $278{,}0$~Mikrosekunden, während beide C++-Varianten innerhalb von $2$~Prozent unverändert bleiben.
+
+%%%--------------------------------------------------------------------
+\section{Speicherbedarf und Binärgröße}
+\label{sec:eval-groessen}
+
+\paragraph{Befund.}
+Die Zustandsgröße der Faust-Klassen ist größer, der Gesamtspeicherbedarf beider Varianten praktisch gleich. Der erzeugte Code ist bei Faust in jeder Konfiguration größer.
+
+\paragraph{Beleg Speicher.}
+Abbildung~\ref{fig:eval-speicher} zeigt die Zustandsgrößen. Bei FIR-256 belegt die Faust-Klasse $1048$~Byte im Objekt, die manuelle $64$~Byte. Der maximale Speicherbedarf des Prozesses liegt für alle Bausteine außer der FFT bei rund $3{,}8$~Megabyte und unterscheidet sich zwischen beiden Varianten um weniger als $3$~Prozent; bei der FFT liegt er bei $4{,}4$ beziehungsweise $4{,}7$~Megabyte.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_speicher}
+	\caption[Zustandsgröße der DSP-Klassen]{Größe der DSP-Klasse in Byte.}
+	\label{fig:eval-speicher}
+\end{figure}
+
+\paragraph{Beleg Binärgröße.}
+Abbildung~\ref{fig:eval-binaergroesse} zeigt das Verhältnis der Codegrößen über fünf Konfigurationen. Bei den kleinen Bausteinen liegt es zwischen $1{,}1$ und $1{,}8$, bei FIR-256 zwischen $2{,}8$ und $4{,}5$, bei der FFT zwischen $2{,}6$ und $7{,}2$. Die höchsten Werte für FIR-256 und FFT treten unter \texttt{-Os} auf. Gemessen ist die Größe des Codeabschnitts abzüglich einer Basislinie mit leerer \texttt{main}-Funktion.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_binaergroesse}
+	\caption[Codegröße im Vergleich]{Verhältnis der Codegröße von Faust zu
+		C++ über fünf Compilerkonfigurationen.}
+	\label{fig:eval-binaergroesse}
+\end{figure}
+
+%%%--------------------------------------------------------------------
+\section{Codeumfang}
+\label{sec:eval-code}
+
+\paragraph{Befund und Beleg.}
+Die Faust-Beschreibung ist bei jedem Baustein kürzer als die manuelle Implementierung, das Verhältnis reicht von $9{:}1$ bis $31{:}1$. Zählt man den Wrapper hinzu, liegt es bei Gain und Akkumulator unter eins. Tabelle~\ref{tab:eval-code} und Abbildung~\ref{fig:eval-codelaenge} zeigen beide Zählweisen.
+
+\begin{table}[htb]
+	\centering
+	\small
+	\caption{Codezeilen je Baustein}
+	\label{tab:eval-code}
+	\begin{tabular}{lrrrrr}
+		\toprule
+		Baustein & Faust & Wrapper & Faust gesamt & manuell & nur Beschreibung \\
+		\midrule
+		Gain          & $1$ & $17$ & $18$ & $17$ & $17{,}0$ \\
+		Akkumulator   & $2$ & $17$ & $19$ & $18$ & $9{,}0$  \\
+		Biquad-Filter & $2$ & $17$ & $19$ & $23$ & $11{,}5$ \\
+		FIR (je Länge)& $3$ & $4$  & $7$  & $37$ & $12{,}3$ \\
+		FFT           & $3$ & $17$ & $20$ & $92$ & $30{,}7$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_codelaenge}
+	\caption[Codelänge im Vergleich]{Codezeilen je Baustein. Die linke Säule
+		trennt die Faust-Beschreibung vom Wrapper, die rechte zeigt die manuelle
+		Implementierung.}
+	\label{fig:eval-codelaenge}
+\end{figure}
+
+%%%--------------------------------------------------------------------
+\section{Übersetzungsdauer des Faust-Compilers}
+\label{sec:eval-compilezeit}
+
+\paragraph{Befund und Beleg.}
+Die Übersetzungsdauer wächst überproportional mit der Problemgröße; eine Kurvenanpassung bevorzugt in allen drei untersuchten Mustern ein exponentielles Modell gegenüber einem Potenzgesetz. Für die FFT steigt sie von $0{,}28$~Sekunden bei $N=64$ über $1{,}70$~Sekunden bei $N=128$ auf $18{,}75$~Sekunden bei $N=256$; bei $N=512$ greift der Abbruch nach $30$~Sekunden. Für eine Rekursionskette wird die Abbruchgrenze bei Tiefe $1024$ erreicht, für eine Baumstruktur bei Tiefe $16$. Die fünf tatsächlich verwendeten Beschreibungen übersetzen sämtlich in unter einer halben Sekunde.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=\textwidth]{abb_eval_compilezeit}
+	\caption[Übersetzungsdauer des Faust-Compilers]{Übersetzungsdauer über der
+		Problemgröße, beide Achsen logarithmisch. Kreuze markieren Läufe, die nach
+		$30$~Sekunden abgebrochen wurden.}
+	\label{fig:eval-compilezeit}
+\end{figure}
+
+%%%--------------------------------------------------------------------
 \section{Zusammenfassung der Messergebnisse}
+\label{sec:eval-zusammenfassung}
+
+Die Messung ist gültig: Beide Varianten berechnen dasselbe, keine fordert im Audio-Pfad Speicher an, und alle Messreihen sind eingipfelig. Die Auflösungsgrenze beträgt $2{,}04$~Prozent und wurde über einen Nullvergleich statt über die Verstärkungsstufe bestimmt.
+
+Die Laufzeitunterschiede reichen von $-49$~Prozent bei FIR-32 bis $+17$~Prozent bei der FFT mit $N=128$. Beim Akkumulator ist kein Unterschied auflösbar. Beim FIR-Filter hängt das Verhältnis davon ab, gegen welche der beiden C++-Varianten verglichen wird: gegen den Ringpuffer bleibt es bei etwa $0{,}53$, gegen den linearen Puffer steigt es von $0{,}60$ auf $1{,}58$.
+
+Über die Blockgröße ist der Aufwand linear und das Verhältnis konstant. Über die Compilerkonfigurationen ist es das nicht: Bei drei von sechs Bausteinen wechselt es das Vorzeichen, beim Biquad-Filter zwischen $1{,}48$ und $0{,}62$.
+
+Bei den übrigen Messgrößen sind die Befunde einheitlich. Der Speicherbedarf beider Varianten ist praktisch gleich, die Zustandsgröße der Faust-Klassen jedoch größer. Der erzeugte Code ist bei Faust in jeder Konfiguration größer, bei FFT und FIR-256 um ein Mehrfaches. Die Faust-Beschreibung ist um Faktor $9$ bis $31$ kürzer, mit Wrapper gerechnet bei zwei Bausteinen jedoch länger. Die Übersetzungsdauer wächst exponentiell und erreicht bei $N=256$ knapp $19$~Sekunden.
+
+Kapitel~\ref{cha:diskussion} ordnet diese Ergebnisse ein und beantwortet damit die Teilfragen.
